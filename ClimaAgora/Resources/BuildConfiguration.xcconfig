@@ -1,0 +1,11 @@
+// Build configuration para adicionar permissões de rede
+// Este arquivo configura o NSAppTransportSecurity automaticamente
+
+INFOPLIST_KEY_NSAppTransportSecurity = {
+	NSAllowsArbitraryLoads = YES;
+	NSExceptionDomains = {
+		"api.openweathermap.org" = {
+			NSIncludesSubdomains = YES;
+			NSTemporaryExceptionAllowsInsecureHTTPLoads = YES;
+		};
+	};
