@@ -7,4 +7,7 @@ protocol IARepositoryProtocol {
     func explainWeather(weather: Weather) async -> String?
     func generateDetailedRecommendation(city: String, weather: Weather, simplified: Bool) async -> String?
     func generateDynamicActivities(city: String, weather: Weather, simplified: Bool) async -> String?
+    /// Atividades já estruturadas (Guided Generation, on-device). `nil` = indisponível
+    /// → o chamador cai no caminho de texto (`generateDynamicActivities`).
+    func generateStructuredActivities(city: String, weather: Weather, simplified: Bool) async -> [StructuredActivity]?
 }

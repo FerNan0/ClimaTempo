@@ -146,21 +146,19 @@ struct ActivitiesTab: View {
                     CategoryLegendView()
                 }
 
-                if let activities = viewModel.dynamicActivities {
+                if accessibility.isSimplifiedMode,
+                   let structured = viewModel.structuredActivities, !structured.isEmpty {
+                    // Caminho PREFERENCIAL: dados estruturados via Guided Generation
+                    // (on-device). Sem parsing de string — cada card vem tipado.
+                    activityCards(structured.map(AccessibleActivity.init(from:)))
+                } else if let activities = viewModel.dynamicActivities {
                     if accessibility.isSimplifiedMode {
+                        // Fallback (nuvem/pré-iOS 26): parsing do texto solto.
                         let parsed = AccessibilityHelper.parseActivitiesFromAI(activities)
                         if parsed.isEmpty {
                             AIResponseCard(title: "🎉 Atividades em \(viewModel.city)", content: activities)
                         } else {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("🎉 Atividades em \(viewModel.city)")
-                                    .font(.system(size: 18, weight: .bold))
-                                    .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.3))
-                                    .padding(.bottom, 4)
-                                ForEach(parsed) { activity in
-                                    AccessibleActivityCard(activity: activity, useLargeIcons: accessibility.useLargeIcons)
-                                }
-                            }
+                            activityCards(parsed)
                         }
                     } else {
                         AIResponseCard(title: "🎉 Atividades em \(viewModel.city)", content: activities)
@@ -170,6 +168,21 @@ struct ActivitiesTab: View {
                 }
             }
             .padding()
+        }
+    }
+
+    /// Renderiza a lista de cards acessíveis (usada tanto pelo caminho estruturado
+    /// quanto pelo fallback de parsing).
+    @ViewBuilder
+    private func activityCards(_ activities: [AccessibleActivity]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("🎉 Atividades em \(viewModel.city)")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.3))
+                .padding(.bottom, 4)
+            ForEach(activities) { activity in
+                AccessibleActivityCard(activity: activity, useLargeIcons: accessibility.useLargeIcons)
+            }
         }
     }
 }

@@ -253,6 +253,41 @@ struct AccessibleActivity: Identifiable {
     }
 }
 
+// MARK: - Mapeamento: StructuredActivity (IA guiada) → card visual
+
+extension AccessibleActivity {
+    /// Converte o resultado ESTRUTURADO da IA (Guided Generation) no card visual,
+    /// sem parsing de string. Tolerante: normaliza acentos/caixa e usa um default
+    /// seguro caso o modelo devolva categoria/dificuldade fora do conjunto guiado.
+    init(from s: StructuredActivity) {
+        self.init(
+            name: s.name,
+            description: s.explanation,
+            category: ActivityCategory.match(s.category),
+            difficulty: DifficultyLevel.match(s.difficulty)
+        )
+    }
+}
+
+extension ActivityCategory {
+    static func match(_ text: String) -> ActivityCategory {
+        let normalized = text.folding(options: .diacriticInsensitive, locale: .current).lowercased()
+        return allCases.first {
+            $0.rawValue.folding(options: .diacriticInsensitive, locale: .current).lowercased() == normalized
+        } ?? .outdoor
+    }
+}
+
+extension AccessibleActivity.DifficultyLevel {
+    static func match(_ text: String) -> AccessibleActivity.DifficultyLevel {
+        switch text.folding(options: .diacriticInsensitive, locale: .current).lowercased() {
+        case "facil":    return .easy
+        case "intenso":  return .hard
+        default:         return .moderate
+        }
+    }
+}
+
 // MARK: - Componentes Visuais de Acessibilidade
 
 /// Semáforo visual do clima — indica de forma intuitiva se é seguro sair

@@ -24,6 +24,9 @@ final class ActivityViewModel: ObservableObject {
     @Published private(set) var state: State = .idle
     @Published private(set) var iaResponse: String?
     @Published private(set) var dynamicActivities: String?
+    /// Atividades estruturadas (Guided Generation on-device). Quando presentes,
+    /// a UI as renderiza sem parsing de string. `nil` → usa `dynamicActivities`.
+    @Published private(set) var structuredActivities: [StructuredActivity]?
     @Published private(set) var clothingSuggestion: String?
     @Published private(set) var activitySuggestion: String?
     @Published private(set) var weatherAlert: String?
@@ -50,15 +53,17 @@ final class ActivityViewModel: ObservableObject {
         Task {
             async let rec        = fetchAIUseCase.generateRecommendation(request)
             async let activities = fetchAIUseCase.generateActivities(request)
+            async let structured = fetchAIUseCase.generateStructuredActivities(request)
             async let clothing   = fetchAIUseCase.suggestClothing(weather: weather)
             async let activity   = fetchAIUseCase.suggestActivity(weather: weather)
             async let alert      = fetchAIUseCase.getWeatherAlert(weather: weather)
 
-            iaResponse         = await rec
-            dynamicActivities  = await activities
-            clothingSuggestion = await clothing
-            activitySuggestion = await activity
-            weatherAlert       = await alert
+            iaResponse           = await rec
+            dynamicActivities    = await activities
+            structuredActivities = await structured
+            clothingSuggestion   = await clothing
+            activitySuggestion   = await activity
+            weatherAlert         = await alert
             state = .loaded
         }
     }
@@ -70,7 +75,10 @@ final class ActivityViewModel: ObservableObject {
             simplified: CognitiveAccessibilityManager.shared.isSimplifiedMode
         )
         Task {
-            dynamicActivities = await fetchAIUseCase.generateActivities(request)
+            async let structured = fetchAIUseCase.generateStructuredActivities(request)
+            async let text       = fetchAIUseCase.generateActivities(request)
+            structuredActivities = await structured
+            dynamicActivities    = await text
         }
     }
 }

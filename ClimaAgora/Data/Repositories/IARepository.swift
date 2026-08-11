@@ -107,6 +107,16 @@ final class IARepository: IARepositoryProtocol {
         )
     }
 
+    func generateStructuredActivities(city: String, weather: Weather, simplified: Bool) async -> [StructuredActivity]? {
+        // Guided Generation só existe on-device (iOS 26+). Sem isso, retorna nil
+        // e o chamador usa o caminho de texto (que roteia para OpenAI).
+        guard isFoundationModelsAvailable() else { return nil }
+        let data = WeatherData(from: weather)
+        return await FoundationModelsService.shared.generateStructuredActivities(
+            city: city, weather: data, simplified: simplified
+        )
+    }
+
     // MARK: - Roteamento interno
 
     private func route(

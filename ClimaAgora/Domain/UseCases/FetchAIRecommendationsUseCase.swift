@@ -20,6 +20,8 @@ protocol FetchAIRecommendationsUseCaseProtocol {
     func getWeatherAlert(weather: Weather) async -> String?
     func generateRecommendation(_ request: AIRecommendationRequest) async -> String?
     func generateActivities(_ request: AIRecommendationRequest) async -> String?
+    /// Atividades estruturadas via Guided Generation (on-device). `nil` = fallback texto.
+    func generateStructuredActivities(_ request: AIRecommendationRequest) async -> [StructuredActivity]?
 }
 
 // MARK: - Implementação
@@ -51,6 +53,12 @@ final class FetchAIRecommendationsUseCase: FetchAIRecommendationsUseCaseProtocol
 
     func generateActivities(_ request: AIRecommendationRequest) async -> String? {
         await repository.generateDynamicActivities(
+            city: request.city, weather: request.weather, simplified: request.simplified
+        )
+    }
+
+    func generateStructuredActivities(_ request: AIRecommendationRequest) async -> [StructuredActivity]? {
+        await repository.generateStructuredActivities(
             city: request.city, weather: request.weather, simplified: request.simplified
         )
     }

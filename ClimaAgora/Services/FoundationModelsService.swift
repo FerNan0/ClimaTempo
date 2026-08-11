@@ -23,6 +23,41 @@ import Foundation
 import FoundationModels
 #endif
 
+// MARK: - Tipos @Generable (Guided Generation)
+//
+// Estes tipos ativam a GERAÇÃO GUIADA do Foundation Models: em vez de o modelo
+// devolver texto solto (que exigia parsing frágil), ele preenche DIRETAMENTE
+// estas estruturas tipadas. Garante que o "modo simplificado" sempre venha no
+// formato certo (nome curto + 1 frase + categoria + dificuldade), eliminando a
+// principal fonte de fragilidade da versão anterior.
+//
+// Só existem quando o SDK do Foundation Models está presente (iOS 26+).
+
+#if canImport(FoundationModels)
+@available(iOS 26.0, *)
+@Generable
+struct GeneratedActivity {
+    @Guide(description: "Nome curto e claro da atividade, no máximo 4 palavras, sem emoji")
+    var name: String
+
+    @Guide(description: "Uma única frase simples, até 12 palavras, explicando a atividade")
+    var explanation: String
+
+    @Guide(description: "Categoria da atividade", .anyOf(["Ao Ar Livre", "Dentro de Casa", "Exercício", "Cultura", "Comida", "Relaxar"]))
+    var category: String
+
+    @Guide(description: "Nível de esforço físico", .anyOf(["Fácil", "Moderado", "Intenso"]))
+    var difficulty: String
+}
+
+@available(iOS 26.0, *)
+@Generable
+struct GeneratedActivityList {
+    @Guide(description: "Lista de atividades recomendadas para o clima atual", .count(5))
+    var activities: [GeneratedActivity]
+}
+#endif
+
 // MARK: - Disponibilidade
 
 /// Verifica se o Foundation Models framework está disponível no dispositivo.
@@ -126,6 +161,46 @@ class FoundationModelsService {
             ? buildAccessibleActivitiesPrompt(city: city, weather: weather)
             : buildDetailedActivitiesPrompt(city: city, weather: weather)
         generate(prompt: prompt, completion: completion)
+    }
+
+    // MARK: - Atividades Estruturadas (Guided Generation)
+
+    /// Gera atividades já ESTRUTURADAS on-device via `@Generable`, sem parsing
+    /// de string. Retorna `nil` quando indisponível/erro, sinalizando fallback
+    /// para o caminho de texto (que roteia para a nuvem).
+    func generateStructuredActivities(
+        city: String,
+        weather: WeatherData,
+        simplified: Bool
+    ) async -> [StructuredActivity]? {
+        #if canImport(FoundationModels)
+        if #available(iOS 26.0, *) {
+            let prompt = """
+            Sugira 5 atividades para fazer em \(city) considerando o clima:
+            \(Int(weather.temperature))°C, \(weather.description), \
+            vento \(String(format: "%.0f", weather.windSpeed)) km/h, umidade \(weather.humidity)%.
+            \(simplified ? "Use nomes e explicações MUITO simples, do dia a dia." : "")
+            Escolha atividades adequadas à temperatura e à condição do tempo.
+            """
+            do {
+                let session = LanguageModelSession()
+                let response = try await session.respond(to: prompt, generating: GeneratedActivityList.self)
+                let mapped = response.content.activities.map {
+                    StructuredActivity(
+                        name: $0.name,
+                        explanation: $0.explanation,
+                        category: $0.category,
+                        difficulty: $0.difficulty
+                    )
+                }
+                return mapped.isEmpty ? nil : mapped
+            } catch {
+                print("⚠️ [FoundationModels] Guided generation falhou: \(error.localizedDescription)")
+                return nil
+            }
+        }
+        #endif
+        return nil
     }
 
     // MARK: - Motor de Geração (Foundation Models)
