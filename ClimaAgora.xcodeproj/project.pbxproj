@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		A100000000000000000000C3 /* ClimaUI in Frameworks */ = {isa = PBXBuildFile; productRef = A100000000000000000000C2 /* ClimaUI */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		4EBDB1A32F69035D009C0DB8 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +56,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A100000000000000000000C3 /* ClimaUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +117,7 @@
 			);
 			name = ClimaAgora;
 			packageProductDependencies = (
+				A100000000000000000000C2 /* ClimaUI */,
 			);
 			productName = ClimaAgora;
 			productReference = 4EBDB1932F69035C009C0DB8 /* ClimaAgora.app */;
@@ -195,6 +201,9 @@
 			);
 			mainGroup = 4EBDB18A2F69035C009C0DB8;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				A100000000000000000000C1 /* XCLocalSwiftPackageReference "ClimaUI" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 4EBDB1942F69035C009C0DB8 /* Products */;
 			projectDirPath = "";
@@ -461,6 +470,7 @@
 				DEVELOPMENT_TEAM = LN84P6XXQV;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
 				MARKETING_VERSION = 1.0;
+				GENERATE_INFOPLIST_FILE = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.app.ClimaAgoraTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -479,6 +489,7 @@
 				DEVELOPMENT_TEAM = LN84P6XXQV;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
 				MARKETING_VERSION = 1.0;
+				GENERATE_INFOPLIST_FILE = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.app.ClimaAgoraTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -496,6 +507,7 @@
 				DEVELOPMENT_TEAM = LN84P6XXQV;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
 				MARKETING_VERSION = 1.0;
+				GENERATE_INFOPLIST_FILE = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.app.ClimaAgoraUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -513,6 +525,7 @@
 				DEVELOPMENT_TEAM = LN84P6XXQV;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
 				MARKETING_VERSION = 1.0;
+				GENERATE_INFOPLIST_FILE = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.app.ClimaAgoraUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -562,6 +575,20 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		A100000000000000000000C1 /* XCLocalSwiftPackageReference "ClimaUI" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ClimaUI;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A100000000000000000000C2 /* ClimaUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ClimaUI;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 4EBDB18B2F69035C009C0DB8 /* Project object */;
 }

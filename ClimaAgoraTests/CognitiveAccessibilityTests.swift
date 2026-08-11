@@ -12,6 +12,10 @@ import SwiftUI
 
 // MARK: - Testes do CognitiveAccessibilityManager
 
+// `.serialized`: estes testes mutam o singleton compartilhado
+// `CognitiveAccessibilityManager.shared` (+ UserDefaults). Sem serializar, o
+// Swift Testing os roda em paralelo e eles disputam o mesmo estado (flaky).
+@Suite(.serialized)
 struct CognitiveAccessibilityManagerTests {
     
     @Test func testEnableAllSetsAllToTrue() {

@@ -31,13 +31,53 @@ class CognitiveAccessibilityManager: ObservableObject {
     @Published var enhancedHaptics: Bool {
         didSet { UserDefaults.standard.set(enhancedHaptics, forKey: "cognitiveAccessibility_haptics") }
     }
-    
+
+    // MARK: - Adaptação automática (motor comportamental)
+
+    /// Interruptor-mestre da adaptação AUTOMÁTICA. Quando ligado, o
+    /// AdaptiveEngine observa o comportamento e pode sugerir simplificar.
+    /// Reflete a preferência de 62,8% por adaptação automática (Tabela 3 do TCC).
+    /// Preserva a agência: o usuário pode desligar por completo a qualquer momento.
+    @Published var automaticAdaptationEnabled: Bool {
+        didSet { UserDefaults.standard.set(automaticAdaptationEnabled, forKey: "cognitiveAccessibility_autoEnabled") }
+    }
+
+    /// Permite que o motor aplique a simplificação SEM pedir permissão quando a
+    /// carga cognitiva é muito alta. Default `false` (começa sempre sugerindo,
+    /// para não surpreender). Sempre reversível e sinalizado.
+    @Published var allowAutoApply: Bool {
+        didSet { UserDefaults.standard.set(allowAutoApply, forKey: "cognitiveAccessibility_allowAutoApply") }
+    }
+
+    /// Origem da última ativação do modo simplificado — usada para transparência
+    /// na UI ("adaptado automaticamente" vs. "você ativou").
+    enum AdaptationSource: String {
+        case manual              // usuário mexeu no toggle
+        case suggestionAccepted  // motor sugeriu, usuário aceitou
+        case automatic           // motor aplicou sozinho
+    }
+    @Published private(set) var lastAdaptationSource: AdaptationSource = .manual
+
     private init() {
         self.isSimplifiedMode = UserDefaults.standard.bool(forKey: "cognitiveAccessibility_simplified")
         self.useLargeIcons = UserDefaults.standard.bool(forKey: "cognitiveAccessibility_largeIcons")
         self.showVisualSummary = UserDefaults.standard.bool(forKey: "cognitiveAccessibility_visualSummary")
         self.reduceInformation = UserDefaults.standard.bool(forKey: "cognitiveAccessibility_reduceInfo")
         self.enhancedHaptics = UserDefaults.standard.bool(forKey: "cognitiveAccessibility_haptics")
+        // Adaptação automática nasce LIGADA (é a tese do TCC), mas em modo
+        // "sugerir" — não aplica nada sozinho até o usuário permitir.
+        self.automaticAdaptationEnabled = UserDefaults.standard.object(forKey: "cognitiveAccessibility_autoEnabled") as? Bool ?? true
+        self.allowAutoApply = UserDefaults.standard.bool(forKey: "cognitiveAccessibility_allowAutoApply")
+    }
+
+    /// Ativa o perfil simplificado (linguagem + menos informação + resumo visual),
+    /// registrando a ORIGEM da mudança para exibição transparente ao usuário.
+    /// Chamado tanto pela aceitação de uma sugestão quanto pela adaptação automática.
+    func applySimplifiedProfile(source: AdaptationSource) {
+        lastAdaptationSource = source
+        isSimplifiedMode = true
+        reduceInformation = true
+        showVisualSummary = true
     }
     
     /// Ativa todos os recursos de acessibilidade cognitiva de uma vez
@@ -496,7 +536,7 @@ struct AccessibilityHelper {
         
         if lower.contains("corr") || lower.contains("exerc") || lower.contains("acade") ||
             lower.contains("caminhad") || lower.contains("bike") || lower.contains("cicl") ||
-            lower.contains("trilh") || lower.contains("nada") || lower.contains("surf") {
+            lower.contains("trilh") || lower.contains("nada") || lower.contains("nata") || lower.contains("surf") {
             return .exercise
         }
         if lower.contains("museu") || lower.contains("teatro") || lower.contains("cinem") ||
@@ -531,7 +571,7 @@ struct AccessibilityHelper {
             return .hard
         }
         if lower.contains("caminhad") || lower.contains("bike") || lower.contains("cicl") ||
-            lower.contains("nada") || lower.contains("exerc") {
+            lower.contains("nada") || lower.contains("nata") || lower.contains("exerc") {
             return .moderate
         }
         
