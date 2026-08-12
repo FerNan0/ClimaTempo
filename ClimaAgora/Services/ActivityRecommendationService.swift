@@ -211,19 +211,10 @@ class ActivityRecommendationService {
         return categories
     }
     
-    // MARK: - Buscar Atividades via IA (fallback)
+    // MARK: - Buscar Atividades via IA (fallback — não implementado nesta versão)
     private func fetchActivitiesFromAI(for city: String, completion: @escaping (ActivityRecommendation?) -> Void) {
-        let prompt = """
-        Liste as 5 principais atividades turísticas e esportes praticados em \(city).
-        Responda em JSON com formato: {"activities": ["atividade1", "atividade2", ...]}
-        """
-        
-        IAService.shared.fetchCustom(prompt: prompt, maxTokens: 100) { response in
-            if let response = response {
-                print("Atividades sugeridas pela IA: \(response)")
-            }
-            completion(nil)
-        }
+        // Fallback desativado: usa IARepository via ActivityViewModel.
+        completion(nil)
     }
 }
 
