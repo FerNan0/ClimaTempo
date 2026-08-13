@@ -90,6 +90,17 @@ final class AdaptiveEngine: ObservableObject {
         evaluate(on: screen)
     }
 
+    /// Dispara 4 sinais de atrito de uma vez — para demonstração/QA do motor
+    /// (ex.: botão "Simular sinais de atrito" no Cognitive Sheet). Cruza o
+    /// limiar e provoca a sugestão/adaptação, exatamente como o comportamento real.
+    func simulateFriction(on screen: String = "Home") {
+        telemetry.registerError(on: screen)
+        telemetry.record(.repeatedTap, screen: screen)
+        telemetry.registerRetry(on: screen)
+        telemetry.record(.repeatedTap, screen: screen)
+        evaluate(on: screen)
+    }
+
     // MARK: - Respostas do usuário à sugestão
 
     /// O usuário aceitou simplificar.

@@ -13,6 +13,7 @@ struct ContentView: View {
     let router: AppRouting
     @ObservedObject var locationManager: LocationManager
     @ObservedObject private var engine = AdaptiveEngine.shared
+    @State private var cogSheetOpen = false
 
     var body: some View {
         ZStack {
@@ -26,6 +27,7 @@ struct ContentView: View {
         }
         .adaptiveScreen("Home")
         .sheet(item: $viewModel.route) { destination(for: $0) }
+        .sheet(isPresented: $cogSheetOpen) { CognitiveSheet() }
         .loadingOverlay(isLoading: viewModel.state == .loading, message: "Buscando clima...")
         .onAppear {
             NotificationManager.shared.requestAuthorization()
@@ -39,7 +41,7 @@ struct ContentView: View {
     private var header: some View {
         HStack(spacing: ClimaSpacing.sm + 2) {
             pillButton("magnifyingglass") { viewModel.didTapSearch() }
-            CognitivePill(load: min(10, Int(engine.currentLoad.rounded()))) { viewModel.didTapSettings() }
+            CognitivePill(load: min(10, Int(engine.currentLoad.rounded()))) { cogSheetOpen = true }
             Spacer()
             pillButton(viewModel.isFavorite ? "heart.fill" : "heart",
                        tint: viewModel.isFavorite ? ClimaColor.danger : nil) {
