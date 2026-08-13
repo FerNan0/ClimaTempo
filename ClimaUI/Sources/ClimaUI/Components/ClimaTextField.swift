@@ -17,13 +17,14 @@ public struct ClimaTextField: View {
     }
 
     public var body: some View {
-        HStack(spacing: ClimaSpacing.sm) {
+        HStack(spacing: ClimaSpacing.sm + 2) {
             Image(systemName: icon)
-                .foregroundColor(ClimaColor.textTertiary)
-                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(ClimaColor.accent)
+                .font(.system(size: 17, weight: .bold))
 
             TextField(placeholder, text: $text)
-                .font(.system(size: 16, weight: .semibold))
+                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                .foregroundStyle(ClimaColor.textPrimary)
                 .autocorrectionDisabled()
 
             if !text.isEmpty {
@@ -31,15 +32,14 @@ public struct ClimaTextField: View {
                     text = ""
                 } label: {
                     Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 17))
                         .foregroundColor(ClimaColor.textTertiary)
                 }
             }
         }
-        .padding(ClimaSpacing.md - 4)
-        .background(
-            RoundedRectangle(cornerRadius: ClimaRadius.md)
-                .fill(Color(.systemBackground).opacity(0.9))
-        )
+        .padding(.horizontal, ClimaSpacing.md)
+        .padding(.vertical, ClimaSpacing.md - 2)
+        .climaGlass(cornerRadius: ClimaRadius.lg)
     }
 }
 

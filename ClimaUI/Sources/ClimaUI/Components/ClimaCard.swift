@@ -18,15 +18,7 @@ public struct ClimaCard<Content: View>: View {
         content
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: ClimaRadius.lg)
-                    .fill(.ultraThinMaterial)
-                    .climaShadow(.card)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: ClimaRadius.lg)
-                    .stroke(Color.white.opacity(0.5), lineWidth: 1)
-            )
+            .climaGlass(cornerRadius: ClimaRadius.lg)
     }
 }
 

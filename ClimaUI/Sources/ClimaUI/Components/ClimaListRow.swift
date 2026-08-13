@@ -32,23 +32,24 @@ public struct ClimaListRow: View {
             HStack(spacing: ClimaSpacing.sm + 4) {
                 Image(systemName: icon)
                     .foregroundColor(iconColor)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 16, weight: .bold))
+                    .frame(width: 36, height: 36)
+                    .background(Circle().fill(iconColor.opacity(0.14)))
                 Text(title)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
                     .foregroundColor(ClimaColor.textPrimary)
                 Spacer()
                 if showsChevron {
                     Image(systemName: "chevron.right")
-                        .foregroundColor(ClimaColor.textTertiary.opacity(0.6))
-                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(ClimaColor.textTertiary.opacity(0.7))
+                        .font(.system(size: 14, weight: .bold))
                 }
             }
-            .padding(ClimaSpacing.md - 2)
-            .background(
-                RoundedRectangle(cornerRadius: ClimaRadius.md)
-                    .fill(Color(.systemGray6).opacity(0.8))
-            )
+            .padding(.horizontal, ClimaSpacing.md - 2)
+            .padding(.vertical, ClimaSpacing.sm + 2)
+            .climaGlass(cornerRadius: ClimaRadius.lg)
         }
+        .buttonStyle(.plain)
     }
 }
 
