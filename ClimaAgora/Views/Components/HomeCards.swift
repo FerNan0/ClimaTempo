@@ -17,6 +17,65 @@ func weatherEmoji(for condition: String) -> String {
     return "🌤️"
 }
 
+// MARK: - Modo simples full-screen
+//
+// Quando o modo simplificado está ativo (por escolha ou pelo motor), a Home
+// vira uma tela minimalista: sem cards densos, só o essencial + um conselho em
+// linguagem simples gerado on-device. Realiza a tese do TCC — reduzir a carga
+// cognitiva estranha ao mínimo — e é sempre reversível ("Voltar ao normal").
+
+struct SimplifiedHomeView: View {
+    let weather: Weather
+    let advice: SimplifiedAdvice
+    let convert: (Double) -> Int
+    let onExit: () -> Void
+
+    var body: some View {
+        VStack(spacing: ClimaSpacing.lg) {
+            Text("MODO SIMPLES ATIVO")
+                .font(.system(size: 12, weight: .heavy, design: .rounded)).tracking(1)
+                .foregroundStyle(ClimaColor.cyan)
+                .padding(.horizontal, ClimaSpacing.md).padding(.vertical, ClimaSpacing.sm)
+                .background(Capsule().fill(ClimaColor.cyan.opacity(0.15)))
+
+            Spacer(minLength: 0)
+
+            Text(weather.city)
+                .font(.system(size: 30, weight: .heavy, design: .rounded))
+                .foregroundStyle(ClimaColor.textPrimary)
+            Text("\(convert(weather.temperature))°")
+                .font(.system(size: 120, weight: .ultraLight, design: .rounded))
+                .foregroundStyle(ClimaColor.textPrimary)
+            Text(weather.description.capitalized)
+                .font(.system(size: 22, weight: .bold, design: .rounded))
+                .foregroundStyle(ClimaColor.textSecondary)
+
+            ClimaGlassCard(cornerRadius: ClimaRadius.xl) {
+                VStack(alignment: .leading, spacing: ClimaSpacing.md) {
+                    adviceLine(advice.weatherPhrase)
+                    adviceLine(advice.advice)
+                    if let caution = advice.caution { adviceLine(caution) }
+                }
+            }
+
+            Spacer(minLength: 0)
+
+            ClimaButton("Voltar ao normal", icon: "arrow.uturn.backward",
+                        variant: .secondary, size: .large, action: onExit)
+        }
+        .padding(ClimaSpacing.lg)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func adviceLine(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 21, weight: .semibold, design: .rounded))
+            .foregroundStyle(ClimaColor.textPrimary)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
 // MARK: - Rótulo de seção (label em caixa alta, discreto)
 
 struct HomeSectionLabel: View {
