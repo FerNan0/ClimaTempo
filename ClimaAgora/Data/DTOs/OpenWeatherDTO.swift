@@ -5,12 +5,18 @@ import Foundation
 
 struct OpenWeatherResponse: Decodable {
     let name: String
+    let coord: OpenWeatherCoord
     let main: OpenWeatherMain
     let weather: [OpenWeatherInfo]
     let wind: OpenWeatherWind
     let clouds: OpenWeatherClouds
     let visibility: Int
     let sys: OpenWeatherSys
+}
+
+struct OpenWeatherCoord: Decodable {
+    let lat: Double
+    let lon: Double
 }
 
 struct OpenWeatherMain: Decodable {
@@ -60,4 +66,24 @@ struct OpenWeatherGeocodingResult: Decodable {
     let country: String
     let lat: Double
     let lon: Double
+}
+
+// MARK: - Air Pollution API (qualidade do ar)
+
+struct OpenWeatherAirPollutionResponse: Decodable {
+    let list: [OpenWeatherAirPollutionItem]
+}
+
+struct OpenWeatherAirPollutionItem: Decodable {
+    let main: OpenWeatherAirPollutionMain
+    let components: OpenWeatherAirPollutionComponents
+}
+
+struct OpenWeatherAirPollutionMain: Decodable {
+    /// Índice de qualidade do ar (1 = Boa … 5 = Muito ruim).
+    let aqi: Int
+}
+
+struct OpenWeatherAirPollutionComponents: Decodable {
+    let pm2_5: Double
 }

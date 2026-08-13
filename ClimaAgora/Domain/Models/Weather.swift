@@ -20,6 +20,10 @@ struct Weather: Identifiable, Equatable {
     let sunset: Date
     let uvIndex: Double
     let visibility: Int
+    /// Coordenadas da cidade (usadas por features que dependem de lat/lon,
+    /// como qualidade do ar). Default 0 mantém compatibilidade com quem não as informa.
+    let latitude: Double
+    let longitude: Double
 
     init(
         id: UUID = UUID(),
@@ -34,7 +38,9 @@ struct Weather: Identifiable, Equatable {
         sunrise: Date,
         sunset: Date,
         uvIndex: Double,
-        visibility: Int
+        visibility: Int,
+        latitude: Double = 0,
+        longitude: Double = 0
     ) {
         self.id = id
         self.city = city
@@ -49,6 +55,18 @@ struct Weather: Identifiable, Equatable {
         self.sunset = sunset
         self.uvIndex = uvIndex
         self.visibility = visibility
+        self.latitude = latitude
+        self.longitude = longitude
+    }
+
+    /// Progresso do sol entre o nascer (0) e o pôr (1) num instante — puro,
+    /// para posicionar o sol no arco do card "nascer / pôr do sol".
+    /// Fora do intervalo diurno, satura em 0 ou 1.
+    func daylightProgress(at now: Date = Date()) -> Double {
+        let total = sunset.timeIntervalSince(sunrise)
+        guard total > 0 else { return 0 }
+        let elapsed = now.timeIntervalSince(sunrise)
+        return min(1, max(0, elapsed / total))
     }
 
     // Igualdade SEMÂNTICA (de propósito não compara todos os campos):

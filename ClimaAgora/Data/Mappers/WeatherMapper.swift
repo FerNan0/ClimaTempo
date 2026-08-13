@@ -16,7 +16,9 @@ enum WeatherMapper {
             sunrise: Date(timeIntervalSince1970: TimeInterval(dto.sys.sunrise)),
             sunset: Date(timeIntervalSince1970: TimeInterval(dto.sys.sunset)),
             uvIndex: 0.0,
-            visibility: dto.visibility
+            visibility: dto.visibility,
+            latitude: dto.coord.lat,
+            longitude: dto.coord.lon
         )
     }
 }

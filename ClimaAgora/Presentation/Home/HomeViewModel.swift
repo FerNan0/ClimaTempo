@@ -45,10 +45,23 @@ final class HomeViewModel: ObservableObject {
 
     @Published private(set) var weather: Weather?
     @Published private(set) var forecast: [DailyForecast] = []
+    @Published private(set) var hourly: [HourlyForecast] = []
+    @Published private(set) var airQuality: AirQuality?
+    @Published var forecastPeriod: ForecastPeriod = .sevenDays
     @Published private(set) var clothingSuggestion: String?
     @Published private(set) var activitySuggestion: String?
     @Published private(set) var isLoadingIA = false
     @Published private(set) var isFavorite = false
+
+    /// Dias visíveis conforme o período selecionado (limitado ao disponível na API).
+    var visibleForecast: [DailyForecast] {
+        Array(forecast.prefix(forecastPeriod.days))
+    }
+
+    /// Resumo agregado do período visível (média máx/mín, dias de chuva).
+    var forecastSummary: ForecastSummary {
+        ForecastSummary.from(visibleForecast)
+    }
 
     @Published var cityName = "São Paulo"
     @Published var temperatureUnit: TemperatureUnit = .celsius
@@ -57,19 +70,25 @@ final class HomeViewModel: ObservableObject {
 
     private let fetchWeatherUseCase: FetchWeatherUseCaseProtocol
     private let fetchForecastUseCase: FetchForecastUseCaseProtocol
+    private let fetchHourlyUseCase: FetchHourlyForecastUseCaseProtocol
+    private let fetchAirQualityUseCase: FetchAirQualityUseCaseProtocol
     private let fetchAIUseCase: FetchAIRecommendationsUseCaseProtocol
     private let manageFavoritesUseCase: ManageFavoritesUseCaseProtocol
 
     init(
         fetchWeatherUseCase: FetchWeatherUseCaseProtocol,
         fetchForecastUseCase: FetchForecastUseCaseProtocol,
+        fetchHourlyUseCase: FetchHourlyForecastUseCaseProtocol,
+        fetchAirQualityUseCase: FetchAirQualityUseCaseProtocol,
         fetchAIUseCase: FetchAIRecommendationsUseCaseProtocol,
         manageFavoritesUseCase: ManageFavoritesUseCaseProtocol
     ) {
-        self.fetchWeatherUseCase    = fetchWeatherUseCase
-        self.fetchForecastUseCase   = fetchForecastUseCase
-        self.fetchAIUseCase         = fetchAIUseCase
-        self.manageFavoritesUseCase = manageFavoritesUseCase
+        self.fetchWeatherUseCase     = fetchWeatherUseCase
+        self.fetchForecastUseCase    = fetchForecastUseCase
+        self.fetchHourlyUseCase      = fetchHourlyUseCase
+        self.fetchAirQualityUseCase  = fetchAirQualityUseCase
+        self.fetchAIUseCase          = fetchAIUseCase
+        self.manageFavoritesUseCase  = manageFavoritesUseCase
     }
 
     // MARK: - Ciclo de vida
@@ -86,6 +105,7 @@ final class HomeViewModel: ObservableObject {
         Task {
             async let weatherTask  = fetchWeatherUseCase.execute(.init(city: city))
             async let forecastTask = fetchForecastUseCase.execute(.init(city: city))
+            async let hourlyTask   = fetchHourlyUseCase.execute(.init(city: city))
 
             do {
                 let result = try await weatherTask
@@ -93,6 +113,13 @@ final class HomeViewModel: ObservableObject {
                 isFavorite = manageFavoritesUseCase.isFavorite(city)
                 SearchHistoryManager.shared.addSearch(city)
                 forecast = (try? await forecastTask) ?? []
+                hourly   = (try? await hourlyTask) ?? []
+                // Qualidade do ar depende das coordenadas do clima recém-obtido.
+                if result.latitude != 0 || result.longitude != 0 {
+                    airQuality = try? await fetchAirQualityUseCase.execute(
+                        .init(latitude: result.latitude, longitude: result.longitude)
+                    )
+                }
                 state = .loaded
                 // Sinal de SUCESSO para o motor de adaptação (interação fluente
                 // reduz a carga cognitiva estimada).

@@ -18,6 +18,8 @@ struct HomeViewModelTests {
         HomeViewModel(
             fetchWeatherUseCase:    MockFetchWeatherUseCase(),
             fetchForecastUseCase:   MockFetchForecastUseCase(),
+            fetchHourlyUseCase:     MockFetchHourlyForecastUseCase(),
+            fetchAirQualityUseCase: MockFetchAirQualityUseCase(),
             fetchAIUseCase:         MockFetchAIUseCase(),
             manageFavoritesUseCase: favorites
         )
