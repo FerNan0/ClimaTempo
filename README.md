@@ -22,8 +22,8 @@
 
 | Clima | Adaptação automática | Atividades acessíveis | Controles + métricas |
 |:---:|:---:|:---:|:---:|
-| <img src="docs/screenshots/home.png" width="200"/> | <img src="docs/screenshots/banner.png" width="200"/> | <img src="docs/screenshots/atividades.png" width="200"/> | <img src="docs/screenshots/configuracoes.png" width="200"/> |
-| Clima e previsão, com sugestões de IA geradas no aparelho | O motor detecta dificuldade e **oferece** simplificar (você decide) | Semáforo de clima + cards de atividade em linguagem simples | Ligar/desligar a adaptação e ver a carga cognitiva em tempo real |
+| <img src="docs/screenshots/home.png" width="200"/> | <img src="docs/screenshots/motor.png" width="200"/> | <img src="docs/screenshots/atividades.png" width="200"/> | <img src="docs/screenshots/configuracoes.png" width="200"/> |
+| Clima, previsão por período, próximas horas, sol e qualidade do ar | **Cognitive Sheet** — o motor explicado, com carga cognitiva e métricas ao vivo | Semáforo de clima + cards de atividade em linguagem simples | Ligar/desligar a adaptação e ver a carga cognitiva em tempo real |
 
 </div>
 
