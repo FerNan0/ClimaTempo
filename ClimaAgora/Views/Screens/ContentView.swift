@@ -1,88 +1,246 @@
 import SwiftUI
+import ClimaUI
 
-// MARK: - ContentView (Tela Principal / "Controller" de entrada)
+// MARK: - ContentView (Home) — redesign v2
 //
-// Papel da View no guia: renderiza o `state` e ESCUTA o `route` para chamar o Router.
-// Não toma decisão de negócio nem cria dependências — só bind e ação de UI.
+// Renderiza o `state` e escuta o `route` para navegar. Toda a UI usa o
+// Design System ClimaUI (tokens + vidro). O motor de adaptação cognitiva
+// aparece em destaque (pill 🧠 no header + banner de sugestão), reforçando
+// o propósito do app: reduzir a carga cognitiva e adaptar-se ao usuário.
 
 struct ContentView: View {
     @ObservedObject var viewModel: HomeViewModel
     let router: AppRouting
     @ObservedObject var locationManager: LocationManager
-
-    // MARK: - Cores derivadas do fundo
-
-    private var isLightBackground: Bool {
-        guard let weather = viewModel.weather else { return true }
-        let now = Date()
-        return now >= weather.sunrise && now <= weather.sunset
-    }
-
-    private var primaryTextColor: Color {
-        isLightBackground ? Color(red: 0.15, green: 0.15, blue: 0.25) : .white
-    }
-
-    private var secondaryTextColor: Color {
-        isLightBackground ? Color(red: 0.35, green: 0.35, blue: 0.45) : .white.opacity(0.7)
-    }
-
-    private var tertiaryTextColor: Color {
-        isLightBackground ? Color(red: 0.5, green: 0.5, blue: 0.6) : .white.opacity(0.5)
-    }
-
-    private var headerIconColor: Color {
-        isLightBackground ? Color(red: 0.25, green: 0.25, blue: 0.4) : .white
-    }
+    @ObservedObject private var engine = AdaptiveEngine.shared
 
     var body: some View {
         ZStack {
-            backgroundGradient
+            ClimaGradient.surface.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                headerSection
-                // Banner do motor de adaptação: aparece só quando a carga
-                // cognitiva estimada pelo comportamento sobe (sugere simplificar).
+                header
                 AdaptiveSuggestionBanner()
-                mainContentSection
+                content
             }
         }
-        // Instrumenta a tela para o motor comportamental (entrada/saída + toques).
         .adaptiveScreen("Home")
-        // Navegação dirigida por evento: a View escuta `route` e pede ao Router a próxima tela.
-        .sheet(item: $viewModel.route) { route in
-            destination(for: route)
-        }
+        .sheet(item: $viewModel.route) { destination(for: $0) }
         .loadingOverlay(isLoading: viewModel.state == .loading, message: "Buscando clima...")
-        .loadingOverlay(
-            isLoading: viewModel.isLoadingIA && viewModel.weather != nil,
-            message: "Gerando sugestões com IA..."
-        )
         .onAppear {
             NotificationManager.shared.requestAuthorization()
-            if locationManager.cityName != "São Paulo" {
-                viewModel.cityName = locationManager.cityName
-            }
+            if locationManager.cityName != "São Paulo" { viewModel.cityName = locationManager.cityName }
             viewModel.start()
         }
     }
 
-    // MARK: - Roteamento (View → Router)
+    // MARK: - Header (pills de vidro + pill do motor cognitivo)
+
+    private var header: some View {
+        HStack(spacing: ClimaSpacing.sm + 2) {
+            pillButton("magnifyingglass") { viewModel.didTapSearch() }
+            CognitivePill(load: min(10, Int(engine.currentLoad.rounded()))) { viewModel.didTapSettings() }
+            Spacer()
+            pillButton(viewModel.isFavorite ? "heart.fill" : "heart",
+                       tint: viewModel.isFavorite ? ClimaColor.danger : nil) {
+                HapticManager.shared.trigger(.light)
+                viewModel.toggleFavorite()
+            }
+            pillButton("gearshape") { viewModel.didTapSettings() }
+        }
+        .padding(.horizontal, ClimaSpacing.md)
+        .padding(.top, ClimaSpacing.sm)
+    }
+
+    private func pillButton(_ icon: String, tint: Color? = nil, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 18, weight: .medium))
+                .foregroundStyle(tint ?? ClimaColor.textPrimary)
+                .frame(width: 44, height: 44)
+                .background(Circle().fill(.ultraThinMaterial))
+                .overlay(Circle().stroke(ClimaColor.glassBorder, lineWidth: 1))
+        }
+    }
+
+    // MARK: - Conteúdo por estado
+
+    @ViewBuilder
+    private var content: some View {
+        switch viewModel.state {
+        case .idle, .loading:
+            Spacer()
+        case .loaded:
+            if let weather = viewModel.weather { weatherContent(weather) }
+        case .failed:
+            noConnection
+        }
+    }
+
+    private func weatherContent(_ weather: Weather) -> some View {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: ClimaSpacing.md) {
+                hero(weather)
+                statsRow(weather)
+
+                if !viewModel.hourly.isEmpty {
+                    HourlyStripView(hourly: viewModel.hourly, convert: convertInt) {
+                        engine.registerTap(on: "Home")
+                    }
+                }
+
+                HStack(spacing: ClimaSpacing.md) {
+                    SunCardView(weather: weather)
+                    if let aqi = viewModel.airQuality {
+                        AirQualityCardView(airQuality: aqi)
+                    }
+                }
+
+                if !viewModel.forecast.isEmpty {
+                    ForecastPeriodView(
+                        period: $viewModel.forecastPeriod,
+                        days: viewModel.visibleForecast,
+                        summary: viewModel.forecastSummary,
+                        convert: convertInt
+                    ) { engine.registerTap(on: "Home") }
+                }
+
+                suggestions
+                shareButton
+            }
+            .padding(.horizontal, 18)
+            .padding(.vertical, ClimaSpacing.md)
+        }
+    }
+
+    private func convertInt(_ celsius: Double) -> Int {
+        Int(viewModel.convertTemperature(celsius).rounded())
+    }
+
+    // MARK: - Hero (clicável → alimenta o motor de fricção)
+
+    private func hero(_ weather: Weather) -> some View {
+        VStack(spacing: 2) {
+            Text(viewModel.cityName)
+                .font(.system(size: 24, weight: .heavy, design: .rounded))
+                .foregroundStyle(ClimaColor.textPrimary)
+            Text("\(convertInt(weather.temperature))°")
+                .font(.system(size: 96, weight: .ultraLight, design: .rounded))
+                .foregroundStyle(ClimaColor.textPrimary)
+            Text(weather.description.capitalized)
+                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .foregroundStyle(ClimaColor.textSecondary)
+            Text("Sensação térmica: \(convertInt(weather.feelsLike))°")
+                .font(.system(size: 13))
+                .foregroundStyle(ClimaColor.textTertiary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, ClimaSpacing.sm)
+        .contentShape(Rectangle())
+        .onTapGesture { engine.registerTap(on: "Home") }
+    }
+
+    // MARK: - Stats (umidade / vento / UV)
+
+    private func statsRow(_ weather: Weather) -> some View {
+        HStack(spacing: ClimaSpacing.sm) {
+            statTile("💧", "\(weather.humidity)%", "Umidade")
+            statTile("💨", "\(String(format: "%.1f", weather.windSpeed)) km/h", "Vento")
+            statTile("☀️", "\(Int(weather.uvIndex))", "Índice UV")
+        }
+    }
+
+    private func statTile(_ emoji: String, _ value: String, _ label: String) -> some View {
+        VStack(spacing: 5) {
+            Text(emoji).font(.system(size: 18))
+            Text(value).font(.system(size: 15, weight: .heavy, design: .rounded)).foregroundStyle(ClimaColor.textPrimary)
+            Text(label).font(.system(size: 10.5, weight: .bold)).foregroundStyle(ClimaColor.textTertiary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, ClimaSpacing.md)
+        .climaGlass(cornerRadius: ClimaRadius.lg)
+    }
+
+    // MARK: - Sugestões de IA
+
+    private var suggestions: some View {
+        VStack(alignment: .leading, spacing: ClimaSpacing.sm) {
+            HomeSectionLabel(text: "SUGESTÕES IA ✨")
+            ClimaGlassCard {
+                suggestionRow(icon: "👕", title: "O que Vestir", text: viewModel.clothingSuggestion)
+            }
+            Button { viewModel.didTapSeeMore() } label: {
+                ClimaGlassCard {
+                    HStack {
+                        suggestionRow(icon: "🎯", title: "Atividade Sugerida", text: viewModel.activitySuggestion)
+                        Image(systemName: "chevron.right").foregroundStyle(ClimaColor.textTertiary)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private func suggestionRow(icon: String, title: String, text: String?) -> some View {
+        HStack(alignment: .top, spacing: ClimaSpacing.sm + 2) {
+            Text(icon).font(.system(size: 20))
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title).font(.system(size: 15, weight: .heavy, design: .rounded)).foregroundStyle(ClimaColor.textPrimary)
+                if let text {
+                    Text(text).font(.system(size: 13)).foregroundStyle(ClimaColor.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else if viewModel.isLoadingIA {
+                    Text("Gerando sugestão...").font(.system(size: 13)).italic().foregroundStyle(ClimaColor.textTertiary)
+                } else {
+                    Text("Toque para gerar").font(.system(size: 13)).italic().foregroundStyle(ClimaColor.textTertiary)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
+    // MARK: - Compartilhar
+
+    private var shareButton: some View {
+        ClimaButton("Compartilhar", icon: "square.and.arrow.up", variant: .secondary) {
+            HapticManager.shared.trigger(.medium)
+            viewModel.didTapShare()
+        }
+    }
+
+    // MARK: - Sem conexão
+
+    private var noConnection: some View {
+        VStack(spacing: ClimaSpacing.md) {
+            Spacer()
+            Image(systemName: "wifi.slash").font(.system(size: 52, weight: .thin)).foregroundStyle(ClimaColor.textTertiary)
+            Text("Sem conexão").font(.system(size: 22, weight: .bold, design: .rounded)).foregroundStyle(ClimaColor.textPrimary)
+            Text("Verifique sua internet e tente novamente").font(.system(size: 14)).foregroundStyle(ClimaColor.textSecondary)
+            ClimaButton("Tentar Novamente", icon: "arrow.clockwise") {
+                HapticManager.shared.trigger(.medium)
+                AdaptiveEngine.shared.registerRetry(on: "Home")
+                viewModel.loadWeather(for: viewModel.cityName)
+            }
+            .fixedSize()
+            Spacer(); Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding()
+    }
+
+    // MARK: - Roteamento
 
     @MainActor @ViewBuilder
     private func destination(for route: HomeViewModel.Route) -> some View {
         switch route {
         case .search:
-            SearchView(viewModel: router.makeSearchViewModel(onCitySelected: { city in
-                viewModel.loadWeather(for: city)
-            }))
+            SearchView(viewModel: router.makeSearchViewModel(onCitySelected: { viewModel.loadWeather(for: $0) }))
         case .settings:
             SettingsView()
         case .activity:
             if let weather = viewModel.weather {
                 ActivityRecommendationView(
-                    viewModel: router.makeActivityViewModel(
-                        viewData: ActivityViewData(city: viewModel.cityName, weather: weather)
-                    )
+                    viewModel: router.makeActivityViewModel(viewData: ActivityViewData(city: viewModel.cityName, weather: weather))
                 )
             }
         case .share:
@@ -90,387 +248,6 @@ struct ContentView: View {
                 ShareSheet(items: [ShareManager.shared.generateShareText(for: weather)])
             }
         }
-    }
-
-    // MARK: - Background
-
-    private var backgroundGradient: some View {
-        LinearGradient(
-            gradient: Gradient(colors: viewModel.getBackgroundGradient()),
-            startPoint: .top,
-            endPoint: .bottom
-        )
-        .ignoresSafeArea()
-    }
-
-    // MARK: - Header
-
-    private var headerSection: some View {
-        HStack {
-            Button(action: { viewModel.didTapSearch() }) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundColor(headerIconColor)
-                    .frame(width: 44, height: 44)
-                    .background(Circle().fill(Color.white.opacity(isLightBackground ? 0.5 : 0.15)))
-            }
-
-            Spacer()
-
-            Button(action: {
-                HapticManager.shared.trigger(.light)
-                viewModel.toggleFavorite()
-            }) {
-                Image(systemName: viewModel.isFavorite ? "heart.fill" : "heart")
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundColor(viewModel.isFavorite ? .red : headerIconColor)
-                    .frame(width: 44, height: 44)
-                    .background(Circle().fill(Color.white.opacity(isLightBackground ? 0.5 : 0.15)))
-            }
-
-            Button(action: { viewModel.didTapSettings() }) {
-                Image(systemName: "gearshape")
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundColor(headerIconColor)
-                    .frame(width: 44, height: 44)
-                    .background(Circle().fill(Color.white.opacity(isLightBackground ? 0.5 : 0.15)))
-            }
-        }
-        .padding(.horizontal, 16)
-    }
-
-    // MARK: - Main Content (dirigido pelo State)
-
-    @ViewBuilder
-    private var mainContentSection: some View {
-        switch viewModel.state {
-        case .idle, .loading:
-            Spacer()
-        case .loaded:
-            if let weather = viewModel.weather {
-                weatherContentSection(weather: weather)
-            }
-        case .failed:
-            noConnectionSection
-        }
-    }
-
-    // MARK: - Weather Content
-
-    private func weatherContentSection(weather: Weather) -> some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            VStack(spacing: 0) {
-                heroSection(weather: weather)
-                    .padding(.bottom, 24)
-
-                VStack(spacing: 16) {
-                    statsRow(weather: weather)
-                    forecastSection
-                    suggestionsSection
-                    shareButton
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 30)
-            }
-        }
-    }
-
-    // MARK: - Hero
-
-    private func heroSection(weather: Weather) -> some View {
-        VStack(spacing: 4) {
-            Text(viewModel.cityName)
-                .font(.system(size: 34, weight: .regular, design: .rounded))
-                .foregroundColor(primaryTextColor)
-
-            let temp = Int(viewModel.convertTemperature(weather.temperature))
-            Text("\(temp)°")
-                .font(.system(size: 96, weight: .thin, design: .rounded))
-                .foregroundColor(primaryTextColor)
-
-            Text(weather.description.capitalized)
-                .font(.system(size: 20, weight: .medium, design: .rounded))
-                .foregroundColor(secondaryTextColor)
-
-            let feelsLike = Int(viewModel.convertTemperature(weather.feelsLike))
-            Text("Sensação térmica: \(feelsLike)°")
-                .font(.system(size: 15, weight: .regular))
-                .foregroundColor(tertiaryTextColor)
-                .padding(.top, 2)
-        }
-        .padding(.top, 8)
-    }
-
-    // MARK: - Stats Row
-
-    private func statsRow(weather: Weather) -> some View {
-        HStack(spacing: 0) {
-            statItem(icon: "drop.fill", value: "\(weather.humidity)%", label: "Umidade", color: .cyan)
-            Divider().frame(height: 36)
-                .background(isLightBackground ? Color.gray.opacity(0.2) : Color.white.opacity(0.3))
-            let windText = String(format: "%.1f", weather.windSpeed)
-            statItem(icon: "wind", value: "\(windText) km/h", label: "Vento", color: .mint)
-            Divider().frame(height: 36)
-                .background(isLightBackground ? Color.gray.opacity(0.2) : Color.white.opacity(0.3))
-            statItem(icon: "sun.max.fill", value: "\(Int(weather.uvIndex))", label: "UV", color: .orange)
-        }
-        .padding(.vertical, 14)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(.ultraThinMaterial)
-                .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 4)
-        )
-    }
-
-    private func statItem(icon: String, value: String, label: String, color: Color) -> some View {
-        VStack(spacing: 6) {
-            Image(systemName: icon).font(.system(size: 16)).foregroundColor(color)
-            Text(value).font(.system(size: 15, weight: .semibold)).foregroundColor(primaryTextColor)
-            Text(label).font(.system(size: 11)).foregroundColor(tertiaryTextColor)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    // MARK: - Forecast
-
-    private var forecastSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label("PREVISÃO DE 5 DIAS", systemImage: "calendar")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(tertiaryTextColor)
-                .padding(.horizontal, 4)
-
-            VStack(spacing: 0) {
-                ForEach(Array(viewModel.forecast.enumerated()), id: \.element.id) { index, day in
-                    forecastRow(day: day)
-                    if index < viewModel.forecast.count - 1 {
-                        Divider()
-                            .background(isLightBackground ? Color.gray.opacity(0.15) : Color.white.opacity(0.15))
-                            .padding(.horizontal, 16)
-                    }
-                }
-            }
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(.ultraThinMaterial)
-                    .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 4)
-            )
-        }
-    }
-
-    private func forecastRow(day: DailyForecast) -> some View {
-        HStack(spacing: 0) {
-            Text(formatDayName(day.date))
-                .font(.system(size: 16, weight: .medium))
-                .foregroundColor(primaryTextColor)
-                .frame(width: 50, alignment: .leading)
-
-            Spacer()
-
-            AnimatedConditionView(condition: day.condition)
-                .frame(width: 30, height: 30)
-                .scaleEffect(0.5)
-                .frame(width: 30, height: 30)
-
-            Spacer()
-
-            HStack(spacing: 4) {
-                let minTemp = Int(viewModel.convertTemperature(day.tempMin))
-                Text("\(minTemp)°")
-                    .font(.system(size: 15, weight: .regular))
-                    .foregroundColor(tertiaryTextColor)
-                    .frame(width: 32, alignment: .trailing)
-
-                temperatureBar(tempMin: day.tempMin, tempMax: day.tempMax)
-                    .frame(width: 80, height: 5)
-
-                let maxTemp = Int(viewModel.convertTemperature(day.tempMax))
-                Text("\(maxTemp)°")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(primaryTextColor)
-                    .frame(width: 32, alignment: .leading)
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-    }
-
-    private func temperatureBar(tempMin: Double, tempMax: Double) -> some View {
-        GeometryReader { geo in
-            let overallMin = viewModel.forecast.map(\.tempMin).min() ?? tempMin
-            let overallMax = viewModel.forecast.map(\.tempMax).max() ?? tempMax
-            let range = overallMax - overallMin
-            let width = geo.size.width
-
-            let startFraction = range > 0 ? (tempMin - overallMin) / range : 0
-            let endFraction   = range > 0 ? (tempMax - overallMin) / range : 1
-            let barWidth = Swift.max(4, width * (endFraction - startFraction))
-
-            ZStack(alignment: .leading) {
-                Capsule().fill(isLightBackground ? Color.gray.opacity(0.15) : Color.white.opacity(0.15))
-                Capsule()
-                    .fill(LinearGradient(colors: [.cyan, .yellow, .orange], startPoint: .leading, endPoint: .trailing))
-                    .frame(width: barWidth)
-                    .offset(x: width * startFraction)
-            }
-        }
-    }
-
-    private func formatDayName(_ date: Date) -> String {
-        if Calendar.current.isDateInToday(date) { return "Hoje" }
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "pt_BR")
-        formatter.dateFormat = "EEE"
-        return formatter.string(from: date).capitalized
-    }
-
-    // MARK: - Suggestions
-
-    private var suggestionsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label("SUGESTÕES IA", systemImage: "sparkles")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(tertiaryTextColor)
-                .padding(.horizontal, 4)
-
-            VStack(spacing: 0) {
-                clothingSuggestionCard
-
-                Divider()
-                    .background(isLightBackground ? Color.gray.opacity(0.15) : Color.white.opacity(0.15))
-                    .padding(.horizontal, 16)
-
-                activitySuggestionCard
-            }
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(.ultraThinMaterial)
-                    .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 4)
-            )
-        }
-    }
-
-    private var clothingSuggestionCard: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "tshirt.fill").font(.system(size: 20)).foregroundColor(.blue).frame(width: 32)
-            VStack(alignment: .leading, spacing: 4) {
-                Text("O que Vestir").font(.system(size: 15, weight: .semibold)).foregroundColor(primaryTextColor)
-                suggestionText(content: viewModel.clothingSuggestion, isLoading: viewModel.isLoadingIA)
-            }
-            Spacer()
-        }
-        .padding(16)
-    }
-
-    private var activitySuggestionCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: "figure.walk").font(.system(size: 20)).foregroundColor(.green).frame(width: 32)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Atividades Recomendadas").font(.system(size: 15, weight: .semibold)).foregroundColor(primaryTextColor)
-                    suggestionText(content: viewModel.activitySuggestion, isLoading: viewModel.isLoadingIA)
-                }
-                Spacer()
-            }
-            activityActionButtons
-        }
-        .padding(16)
-    }
-
-    @ViewBuilder
-    private func suggestionText(content: String?, isLoading: Bool) -> some View {
-        if let text = content {
-            Text(text).font(.system(size: 14)).foregroundColor(secondaryTextColor).lineLimit(nil).fixedSize(horizontal: false, vertical: true)
-        } else if isLoading {
-            Text("Gerando sugestão...").font(.system(size: 14)).italic().foregroundColor(tertiaryTextColor)
-        } else {
-            Text("Toque para gerar sugestão").font(.system(size: 14)).italic().foregroundColor(tertiaryTextColor)
-        }
-    }
-
-    private var activityActionButtons: some View {
-        HStack(spacing: 10) {
-            Button(action: {
-                HapticManager.shared.trigger(.light)
-                viewModel.refreshActivitySuggestion()
-            }) {
-                HStack(spacing: 4) {
-                    Image(systemName: "arrow.clockwise").font(.system(size: 11, weight: .semibold))
-                    Text("Recarregar").font(.system(size: 13, weight: .semibold))
-                }
-                .foregroundColor(isLightBackground ? Color(red: 0.3, green: 0.3, blue: 0.5) : .white)
-                .padding(.vertical, 7).padding(.horizontal, 14)
-                .background(Capsule().fill(isLightBackground ? Color.white.opacity(0.6) : Color.white.opacity(0.15))
-                    .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2))
-            }
-
-            Button(action: { viewModel.didTapSeeMore() }) {
-                HStack(spacing: 4) {
-                    Image(systemName: "sparkles").font(.system(size: 11, weight: .semibold))
-                    Text("Ver Mais").font(.system(size: 13, weight: .semibold))
-                }
-                .foregroundColor(isLightBackground ? Color(red: 0.3, green: 0.3, blue: 0.5) : .white)
-                .padding(.vertical, 7).padding(.horizontal, 14)
-                .background(Capsule().fill(isLightBackground ? Color.white.opacity(0.6) : Color.white.opacity(0.15))
-                    .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2))
-            }
-
-            Spacer()
-        }
-        .padding(.leading, 44)
-    }
-
-    // MARK: - Share
-
-    private var shareButton: some View {
-        Button(action: {
-            HapticManager.shared.trigger(.medium)
-            viewModel.didTapShare()
-        }) {
-            HStack(spacing: 8) {
-                Image(systemName: "square.and.arrow.up")
-                Text("Compartilhar")
-            }
-            .font(.system(size: 15, weight: .semibold))
-            .foregroundColor(isLightBackground ? Color(red: 0.3, green: 0.3, blue: 0.5) : .white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(.ultraThinMaterial)
-                    .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 4)
-            )
-        }
-    }
-
-    // MARK: - No Connection
-
-    private var noConnectionSection: some View {
-        VStack(spacing: 20) {
-            Spacer()
-            Image(systemName: "wifi.slash").font(.system(size: 56, weight: .thin)).foregroundColor(tertiaryTextColor)
-            Text("Sem conexão").font(.system(size: 22, weight: .semibold)).foregroundColor(primaryTextColor)
-            Text("Verifique sua internet e tente novamente").font(.system(size: 15)).foregroundColor(secondaryTextColor)
-            Button(action: {
-                HapticManager.shared.trigger(.medium)
-                // Re-tentar após um erro é um sinal de atrito (Tabela 2 do TCC).
-                AdaptiveEngine.shared.registerRetry(on: "Home")
-                viewModel.loadWeather(for: viewModel.cityName)
-            }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "arrow.clockwise")
-                    Text("Tentar Novamente")
-                }
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.5))
-                .padding(.vertical, 12).padding(.horizontal, 24)
-                .background(Capsule().fill(.ultraThinMaterial).shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 4))
-            }
-            .frame(minHeight: 44)
-            Spacer()
-            Spacer()
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 

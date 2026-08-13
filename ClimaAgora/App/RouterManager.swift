@@ -28,6 +28,8 @@ final class RouterManager: ObservableObject, AppRouting {
     // Use cases (já como interfaces — é assim que as ViewModels os recebem)
     private let fetchWeather: FetchWeatherUseCaseProtocol
     private let fetchForecast: FetchForecastUseCaseProtocol
+    private let fetchHourly: FetchHourlyForecastUseCaseProtocol
+    private let fetchAirQuality: FetchAirQualityUseCaseProtocol
     private let searchCities: SearchCitiesUseCaseProtocol
     private let fetchAI: FetchAIRecommendationsUseCaseProtocol
     private let manageFavorites: ManageFavoritesUseCaseProtocol
@@ -40,6 +42,8 @@ final class RouterManager: ObservableObject, AppRouting {
 
         fetchWeather    = FetchWeatherUseCase(repository: weatherRepository)
         fetchForecast   = FetchForecastUseCase(repository: weatherRepository)
+        fetchHourly     = FetchHourlyForecastUseCase(repository: weatherRepository)
+        fetchAirQuality = FetchAirQualityUseCase(repository: weatherRepository)
         searchCities    = SearchCitiesUseCase(repository: weatherRepository)
         fetchAI         = FetchAIRecommendationsUseCase(repository: iaRepository)
         manageFavorites = ManageFavoritesUseCase(repository: favoritesRepository)
@@ -49,10 +53,12 @@ final class RouterManager: ObservableObject, AppRouting {
 
     func makeHomeViewModel() -> HomeViewModel {
         HomeViewModel(
-            fetchWeatherUseCase:    fetchWeather,
-            fetchForecastUseCase:   fetchForecast,
-            fetchAIUseCase:         fetchAI,
-            manageFavoritesUseCase: manageFavorites
+            fetchWeatherUseCase:     fetchWeather,
+            fetchForecastUseCase:    fetchForecast,
+            fetchHourlyUseCase:      fetchHourly,
+            fetchAirQualityUseCase:  fetchAirQuality,
+            fetchAIUseCase:          fetchAI,
+            manageFavoritesUseCase:  manageFavorites
         )
     }
 

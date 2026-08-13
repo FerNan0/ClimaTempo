@@ -25,6 +25,16 @@ final class MockFetchForecastUseCase: FetchForecastUseCaseProtocol {
     func execute(_ request: FetchForecastRequest) async throws -> [DailyForecast] { result }
 }
 
+final class MockFetchHourlyForecastUseCase: FetchHourlyForecastUseCaseProtocol {
+    var result: [HourlyForecast] = []
+    func execute(_ request: FetchHourlyForecastRequest) async throws -> [HourlyForecast] { result }
+}
+
+final class MockFetchAirQualityUseCase: FetchAirQualityUseCaseProtocol {
+    var result: AirQuality = .preview
+    func execute(_ request: FetchAirQualityRequest) async throws -> AirQuality { result }
+}
+
 final class MockFetchAIUseCase: FetchAIRecommendationsUseCaseProtocol {
     func suggestClothing(weather: Weather) async -> String? { "👕 teste" }
     func suggestActivity(weather: Weather) async -> String? { "🎯 teste" }
