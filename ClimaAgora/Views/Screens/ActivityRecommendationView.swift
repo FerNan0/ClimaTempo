@@ -10,16 +10,7 @@ struct ActivityRecommendationView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(red: 0.82, green: 0.90, blue: 1.0),
-                    Color(red: 0.88, green: 0.86, blue: 1.0),
-                    Color(red: 0.94, green: 0.90, blue: 0.98)
-                ]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            ClimaGradient.surface.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 // Header
@@ -41,17 +32,7 @@ struct ActivityRecommendationView: View {
                     .accessibleButton(label: AccessibilityDescriptions.closeButton, hint: "Fecha a tela de atividades")
                 }
                 .padding()
-                .background(
-                    LinearGradient(
-                        gradient: Gradient(colors: [
-                            Color(red: 0.35, green: 0.55, blue: 0.95),
-                            Color(red: 0.65, green: 0.50, blue: 0.90),
-                            Color(red: 0.80, green: 0.55, blue: 0.85)
-                        ]),
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
+                .background(ClimaGradient.brand)
 
                 // Tab Selector
                 HStack(spacing: 0) {
@@ -178,7 +159,7 @@ struct ActivitiesTab: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("🎉 Atividades em \(viewModel.city)")
                 .font(.system(size: 18, weight: .bold))
-                .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.3))
+                .foregroundColor(ClimaColor.textPrimary)
                 .padding(.bottom, 4)
             ForEach(activities) { activity in
                 AccessibleActivityCard(activity: activity, useLargeIcons: accessibility.useLargeIcons)
@@ -196,12 +177,12 @@ struct CategoryLegendView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("📖 Tipos de Atividade")
                 .font(.system(size: 13, weight: .bold))
-                .foregroundColor(Color(red: 0.25, green: 0.25, blue: 0.35))
+                .foregroundColor(ClimaColor.textPrimary)
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                 ForEach(categories, id: \.rawValue) { cat in
                     HStack(spacing: 4) {
                         Image(systemName: cat.icon).font(.system(size: 12)).foregroundColor(cat.color)
-                        Text(cat.rawValue).font(.system(size: 10, weight: .medium)).foregroundColor(Color(red: 0.35, green: 0.35, blue: 0.45))
+                        Text(cat.rawValue).font(.system(size: 10, weight: .medium)).foregroundColor(ClimaColor.textSecondary)
                     }
                     .padding(.vertical, 4).padding(.horizontal, 6)
                     .background(cat.color.opacity(0.12)).cornerRadius(6)
@@ -224,7 +205,7 @@ struct TabButton: View {
         Button(action: action) {
             Text(title)
                 .font(.callout).fontWeight(.semibold)
-                .foregroundColor(isSelected ? Color(red: 0.2, green: 0.2, blue: 0.35) : Color(red: 0.5, green: 0.5, blue: 0.6))
+                .foregroundColor(isSelected ? ClimaColor.textPrimary : ClimaColor.textTertiary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
                 .background(
@@ -247,14 +228,14 @@ struct WeatherInfoCard: View {
                     HStack(spacing: 4) { Image(systemName: "cloud"); Text(weather.condition) }
                     HStack(spacing: 4) { Image(systemName: "drop"); Text("Umidade: \(weather.humidity)%") }
                 }
-                .font(.footnote).foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
+                .font(.footnote).foregroundColor(ClimaColor.textSecondary)
                 Spacer()
                 VStack(alignment: .trailing, spacing: 8) {
                     HStack(spacing: 4) { Image(systemName: "wind"); Text("\(String(format: "%.1f", weather.windSpeed)) km/h") }
                     HStack(spacing: 4) { Image(systemName: "eye"); Text("\(Double(weather.visibility) / 1000, specifier: "%.1f") km") }
                     HStack(spacing: 4) { Image(systemName: "sun.max"); Text("UV: \(Int(weather.uvIndex))") }
                 }
-                .font(.footnote).foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
+                .font(.footnote).foregroundColor(ClimaColor.textSecondary)
             }
         }
         .accessibleGroup(label: AccessibilityHelper.createStatusDescription(city: weather.city, condition: weather.condition, temperature: Int(weather.temperature)) + ". " + AccessibilityDescriptions.humidity(weather.humidity) + ". " + AccessibilityDescriptions.wind(weather.windSpeed))
@@ -267,8 +248,8 @@ struct AIResponseCard: View {
     var body: some View {
         ClimaCard {
             VStack(alignment: .leading, spacing: ClimaSpacing.sm + 4) {
-                Text(title).font(.headline).foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.3))
-                Text(content).font(.body).foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4)).lineLimit(nil).lineSpacing(3)
+                Text(title).font(.headline).foregroundColor(ClimaColor.textPrimary)
+                Text(content).font(.body).foregroundColor(ClimaColor.textSecondary).lineLimit(nil).lineSpacing(3)
             }
         }
         .accessibilityElement(children: .combine).accessibilityLabel("\(title). \(content)")
@@ -282,10 +263,10 @@ struct RecommendationCard: View {
             VStack(alignment: .leading, spacing: ClimaSpacing.sm) {
                 HStack {
                     Text(emoji).font(.title2)
-                    Text(title).font(.headline).foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.3))
+                    Text(title).font(.headline).foregroundColor(ClimaColor.textPrimary)
                     Spacer()
                 }
-                Text(content).font(.callout).foregroundColor(Color(red: 0.35, green: 0.35, blue: 0.45)).lineLimit(nil).lineSpacing(2)
+                Text(content).font(.callout).foregroundColor(ClimaColor.textSecondary).lineLimit(nil).lineSpacing(2)
             }
         }
         .accessibilityElement(children: .combine).accessibilityLabel("\(title). \(content)")
@@ -296,8 +277,8 @@ struct PlaceholderCard: View {
     let text: String
     var body: some View {
         VStack(spacing: 12) {
-            Image(systemName: "questionmark.circle").font(.system(size: 40)).foregroundColor(Color(red: 0.6, green: 0.6, blue: 0.7))
-            Text(text).foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6)).multilineTextAlignment(.center)
+            Image(systemName: "questionmark.circle").font(.system(size: 40)).foregroundColor(ClimaColor.textTertiary)
+            Text(text).foregroundColor(ClimaColor.textTertiary).multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity).padding()
         .background(RoundedRectangle(cornerRadius: 14).fill(.ultraThinMaterial).shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 2))
