@@ -3,6 +3,7 @@ import ClimaUI
 
 // SettingsView não precisa de ViewModel — gerencia preferências locais
 // diretamente via UserDefaults e CognitiveAccessibilityManager.
+// Redesign v2: usa o Design System ClimaUI (tokens + vidro + componentes).
 
 struct SettingsView: View {
     @ObservedObject var accessibility = CognitiveAccessibilityManager.shared
@@ -11,325 +12,209 @@ struct SettingsView: View {
     @State private var temperatureUnit    = UserDefaults.standard.string(forKey: "temperatureUnit") ?? "Celsius"
     @State private var notificationsEnabled = UserDefaults.standard.bool(forKey: "notificationsEnabled")
 
+    private let units = ["Celsius", "Fahrenheit", "Kelvin"]
+
     var body: some View {
         NavigationStack {
             ZStack {
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color(red: 0.82, green: 0.90, blue: 1.0),
-                        Color(red: 0.92, green: 0.86, blue: 0.98),
-                        Color(red: 0.98, green: 0.90, blue: 0.95)
-                    ]),
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
-
+                ClimaGradient.surface.ignoresSafeArea()
                 VStack(spacing: 0) {
-                    headerView
-                    contentView
+                    header
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: ClimaSpacing.md) {
+                            unitCard
+                            notificationsCard
+                            adaptiveCard
+                            accessibilityCard
+                            aboutCard
+                        }
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, ClimaSpacing.lg)
+                    }
                 }
             }
+            .navigationBarHidden(true)
         }
     }
 
-    // MARK: - Header
+    // MARK: - Header (gradiente de marca)
 
-    var headerView: some View {
-        HStack(spacing: 14) {
-            Button(action: { dismiss() }) {
+    private var header: some View {
+        HStack(spacing: ClimaSpacing.md) {
+            Button { dismiss() } label: {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundStyle(.white)
                     .frame(width: 36, height: 36)
-                    .background(Color.white.opacity(0.2))
-                    .clipShape(Circle())
+                    .background(Circle().fill(.white.opacity(0.22)))
             }
             Text("Configurações")
-                .font(.system(size: 26, weight: .bold, design: .rounded))
-                .foregroundColor(.white)
+                .font(.system(size: 26, weight: .heavy, design: .rounded))
+                .foregroundStyle(.white)
             Spacer()
         }
-        .padding(.horizontal, 20).padding(.top, 12).padding(.bottom, 18)
-        .background(
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(red: 0.35, green: 0.55, blue: 0.95),
-                    Color(red: 0.58, green: 0.48, blue: 0.92),
-                    Color(red: 0.78, green: 0.52, blue: 0.85)
-                ]),
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        )
+        .padding(.horizontal, ClimaSpacing.lg).padding(.top, 12).padding(.bottom, 18)
+        .background(ClimaGradient.brand)
     }
 
-    // MARK: - Content
+    // MARK: - Cabeçalho de card (ícone tintado + título + subtítulo)
 
-    var contentView: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(spacing: 20) {
-                unitCard
-                notificationsCard
-                adaptiveCard
-                accessibilityCard
-                aboutCard
+    private func cardHeader(icon: String, tint: Color, title: String, subtitle: String? = nil) -> some View {
+        HStack(spacing: ClimaSpacing.sm + 2) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .semibold)).foregroundStyle(tint)
+                .frame(width: 32, height: 32)
+                .background(RoundedRectangle(cornerRadius: ClimaRadius.sm).fill(tint.opacity(0.14)))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(.system(size: 16, weight: .bold, design: .rounded)).foregroundStyle(ClimaColor.textPrimary)
+                if let subtitle {
+                    Text(subtitle).font(.system(size: 11, weight: .medium)).foregroundStyle(ClimaColor.textTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
-            .padding(.horizontal, 18).padding(.top, 20).padding(.bottom, 32)
+            Spacer()
         }
+    }
+
+    private var divider: some View {
+        Rectangle().fill(ClimaColor.textTertiary.opacity(0.15)).frame(height: 1)
     }
 
     // MARK: - Temperatura
 
-    var unitCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
-                Image(systemName: "thermometer.medium")
-                    .font(.system(size: 16, weight: .semibold)).foregroundColor(.orange)
-                    .frame(width: 32, height: 32).background(Color.orange.opacity(0.12)).clipShape(RoundedRectangle(cornerRadius: 8))
-                Text("Temperatura")
-                    .font(.system(size: 16, weight: .semibold, design: .rounded))
-                    .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.32))
-            }
-            Picker("Unidade", selection: $temperatureUnit) {
-                Text("Celsius").tag("Celsius")
-                Text("Fahrenheit").tag("Fahrenheit")
-                Text("Kelvin").tag("Kelvin")
-            }
-            .pickerStyle(.segmented)
-            .onChange(of: temperatureUnit) { _, newValue in
-                UserDefaults.standard.setValue(newValue, forKey: "temperatureUnit")
+    private var unitCard: some View {
+        ClimaGlassCard {
+            VStack(alignment: .leading, spacing: ClimaSpacing.md) {
+                cardHeader(icon: "thermometer.medium", tint: .orange, title: "Temperatura")
+                ClimaSegmented(units, selection: $temperatureUnit) { $0 }
+                    .onChange(of: temperatureUnit) { _, v in UserDefaults.standard.setValue(v, forKey: "temperatureUnit") }
             }
         }
-        .padding(16).background(cardBackground)
     }
 
     // MARK: - Notificações
 
-    var notificationsCard: some View {
-        HStack(spacing: 14) {
-            Image(systemName: notificationsEnabled ? "bell.badge.fill" : "bell.fill")
-                .font(.system(size: 16, weight: .semibold)).foregroundColor(.green)
-                .frame(width: 32, height: 32).background(Color.green.opacity(0.12)).clipShape(RoundedRectangle(cornerRadius: 8))
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Notificações")
-                    .font(.system(size: 16, weight: .semibold, design: .rounded))
-                    .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.32))
-                Text(notificationsEnabled ? "Ativadas" : "Desativadas")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(notificationsEnabled ? .green : Color(red: 0.55, green: 0.55, blue: 0.65))
+    private var notificationsCard: some View {
+        ClimaGlassCard {
+            HStack(spacing: ClimaSpacing.sm + 2) {
+                cardHeader(icon: notificationsEnabled ? "bell.badge.fill" : "bell.fill",
+                           tint: ClimaColor.safe,
+                           title: "Notificações",
+                           subtitle: notificationsEnabled ? "Ativadas" : "Desativadas")
+                Toggle("", isOn: $notificationsEnabled)
+                    .labelsHidden().tint(ClimaColor.safe)
+                    .onChange(of: notificationsEnabled) { _, v in
+                        UserDefaults.standard.setValue(v, forKey: "notificationsEnabled")
+                        if v { NotificationManager.shared.requestAuthorization() }
+                    }
             }
-            Spacer()
-            Toggle("", isOn: $notificationsEnabled)
-                .labelsHidden().tint(.green)
-                .onChange(of: notificationsEnabled) { _, newValue in
-                    UserDefaults.standard.setValue(newValue, forKey: "notificationsEnabled")
-                    if newValue { NotificationManager.shared.requestAuthorization() }
-                }
         }
-        .padding(16).background(cardBackground)
     }
 
-    // MARK: - Adaptação Automática (motor comportamental)
+    // MARK: - Adaptação Automática (motor comportamental — diferencial do app)
 
-    var adaptiveCard: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 10) {
-                Image(systemName: "wand.and.sparkles")
-                    .font(.system(size: 16, weight: .semibold)).foregroundColor(.indigo)
-                    .frame(width: 32, height: 32).background(Color.indigo.opacity(0.12)).clipShape(RoundedRectangle(cornerRadius: 8))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Adaptação Automática")
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
-                        .foregroundColor(Color(red: 0.15, green: 0.15, blue: 0.28))
-                    Text("O app percebe quando a tela está difícil e ajuda sozinho")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
-                        .fixedSize(horizontal: false, vertical: true)
+    private var adaptiveCard: some View {
+        ClimaGlassCard {
+            VStack(alignment: .leading, spacing: ClimaSpacing.md) {
+                cardHeader(icon: "wand.and.sparkles", tint: ClimaColor.indigo,
+                           title: "Adaptação Automática",
+                           subtitle: "O app percebe quando a tela está difícil e ajuda sozinho")
+                divider
+                VStack(spacing: ClimaSpacing.sm) {
+                    ClimaToggleRow(icon: "brain.filled.head.profile", iconColor: ClimaColor.indigo,
+                                   title: "Ativar adaptação automática",
+                                   subtitle: "Sugere simplificar quando percebe dificuldade",
+                                   isOn: $accessibility.automaticAdaptationEnabled)
+                    if accessibility.automaticAdaptationEnabled {
+                        ClimaToggleRow(icon: "bolt.badge.automatic", iconColor: .orange,
+                                       title: "Simplificar sem perguntar",
+                                       subtitle: "Em caso de muita dificuldade, adapta sozinho (sempre reversível)",
+                                       isOn: $accessibility.allowAutoApply)
+                    }
                 }
-                Spacer()
-            }
-            .padding(.horizontal, 16).padding(.top, 16).padding(.bottom, 14)
-
-            Rectangle().fill(Color.gray.opacity(0.12)).frame(height: 1).padding(.horizontal, 16)
-
-            VStack(spacing: 0) {
-                ClimaToggleRow(icon: "brain.filled.head.profile", iconColor: .indigo,
-                               title: "Ativar adaptação automática",
-                               subtitle: "Sugere simplificar quando percebe dificuldade",
-                               isOn: $accessibility.automaticAdaptationEnabled)
-                if accessibility.automaticAdaptationEnabled {
-                    toggleDivider
-                    ClimaToggleRow(icon: "bolt.badge.automatic", iconColor: .orange,
-                                   title: "Simplificar sem perguntar",
-                                   subtitle: "Em caso de muita dificuldade, adapta sozinho (sempre reversível)",
-                                   isOn: $accessibility.allowAutoApply)
+                divider
+                // Métricas locais de validação — evidência empírica para o TCC.
+                VStack(spacing: ClimaSpacing.sm) {
+                    HStack {
+                        Text("Carga cognitiva agora").font(.system(size: 13, weight: .medium)).foregroundStyle(ClimaColor.textSecondary)
+                        Spacer()
+                        Text(String(format: "%.0f", engine.currentLoad))
+                            .font(.system(size: 14, weight: .heavy, design: .monospaced))
+                            .foregroundStyle(ClimaColor.cognitiveLoad(min(10, Int(engine.currentLoad.rounded()))))
+                    }
+                    let m = engine.telemetry.metrics
+                    metricRow("Sinais de atrito", m.repeatedTaps + m.retries + m.errors + m.hesitations + m.backNavigations)
+                    metricRow("Sugestões mostradas", m.suggestionsShown)
+                    metricRow("Sugestões aceitas", m.suggestionsAccepted)
+                    metricRow("Adaptações automáticas", m.autoAdaptations)
+                }
+                ClimaButton("Zerar métricas da sessão", variant: .secondary, size: .small) {
+                    HapticManager.shared.trigger(.light)
+                    engine.telemetry.resetMetrics()
                 }
             }
-            .padding(.vertical, 4)
-
-            Rectangle().fill(Color.gray.opacity(0.12)).frame(height: 1).padding(.horizontal, 16)
-
-            // Métricas locais de validação — evidência empírica para o TCC.
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text("Carga cognitiva agora")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.5))
-                    Spacer()
-                    Text(String(format: "%.0f", engine.currentLoad))
-                        .font(.system(size: 13, weight: .bold, design: .monospaced))
-                        .foregroundColor(engine.currentLoad >= 6 ? .orange : .green)
-                }
-                metricRow("Sinais de atrito", value: engine.telemetry.metrics.repeatedTaps + engine.telemetry.metrics.retries + engine.telemetry.metrics.errors + engine.telemetry.metrics.hesitations + engine.telemetry.metrics.backNavigations)
-                metricRow("Sugestões mostradas", value: engine.telemetry.metrics.suggestionsShown)
-                metricRow("Sugestões aceitas", value: engine.telemetry.metrics.suggestionsAccepted)
-                metricRow("Adaptações automáticas", value: engine.telemetry.metrics.autoAdaptations)
-            }
-            .padding(.horizontal, 16).padding(.vertical, 12)
-
-            Button(action: {
-                HapticManager.shared.trigger(.light)
-                engine.telemetry.resetMetrics()
-            }) {
-                Text("Zerar métricas da sessão")
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                    .foregroundColor(.indigo)
-                    .frame(maxWidth: .infinity).padding(.vertical, 10)
-                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.indigo.opacity(0.1)))
-            }
-            .padding(.horizontal, 16).padding(.bottom, 16)
         }
-        .background(
-            RoundedRectangle(cornerRadius: 18)
-                .fill(Color.white.opacity(0.55))
-                .shadow(color: Color.indigo.opacity(0.08), radius: 12, x: 0, y: 4)
-        )
-        .overlay(RoundedRectangle(cornerRadius: 18).stroke(Color.indigo.opacity(0.18), lineWidth: 1))
     }
 
-    private func metricRow(_ label: String, value: Int) -> some View {
+    private func metricRow(_ label: String, _ value: Int) -> some View {
         HStack {
-            Text(label).font(.system(size: 13)).foregroundColor(Color(red: 0.45, green: 0.45, blue: 0.55))
+            Text(label).font(.system(size: 13)).foregroundStyle(ClimaColor.textSecondary)
             Spacer()
-            Text("\(value)").font(.system(size: 13, weight: .semibold, design: .monospaced))
-                .foregroundColor(Color(red: 0.25, green: 0.25, blue: 0.38))
+            Text("\(value)").font(.system(size: 13, weight: .semibold, design: .monospaced)).foregroundStyle(ClimaColor.textPrimary)
         }
     }
 
     // MARK: - Acessibilidade Cognitiva
 
-    var accessibilityCard: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 10) {
-                Image(systemName: "brain.head.profile")
-                    .font(.system(size: 16, weight: .semibold)).foregroundColor(.cyan)
-                    .frame(width: 32, height: 32).background(Color.cyan.opacity(0.12)).clipShape(RoundedRectangle(cornerRadius: 8))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Acessibilidade Cognitiva")
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
-                        .foregroundColor(Color(red: 0.15, green: 0.15, blue: 0.28))
-                    Text("Facilita a compreensão das informações")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+    private var accessibilityCard: some View {
+        ClimaGlassCard {
+            VStack(alignment: .leading, spacing: ClimaSpacing.md) {
+                cardHeader(icon: "brain.head.profile", tint: ClimaColor.cyan,
+                           title: "Acessibilidade Cognitiva",
+                           subtitle: "Facilita a compreensão das informações")
+                divider
+                VStack(spacing: ClimaSpacing.sm) {
+                    ClimaToggleRow(icon: "textformat.abc", iconColor: ClimaColor.safe, title: "Linguagem Simplificada", subtitle: "Textos mais curtos e fáceis de entender", isOn: $accessibility.isSimplifiedMode)
+                    ClimaToggleRow(icon: "plus.magnifyingglass", iconColor: .orange, title: "Ícones Grandes", subtitle: "Aumenta ícones e áreas de toque", isOn: $accessibility.useLargeIcons)
+                    ClimaToggleRow(icon: "circle.lefthalf.filled", iconColor: ClimaColor.caution, title: "Semáforo de Clima", subtitle: "Mostra 🟢🟡🔴 se é seguro sair", isOn: $accessibility.showVisualSummary)
+                    ClimaToggleRow(icon: "eye.slash", iconColor: ClimaColor.sky, title: "Reduzir Informações", subtitle: "Mostra só o essencial", isOn: $accessibility.reduceInformation)
+                    ClimaToggleRow(icon: "iphone.radiowaves.left.and.right", iconColor: ClimaColor.blush, title: "Vibração Reforçada", subtitle: "Vibra mais forte ao tocar nos botões", isOn: $accessibility.enhancedHaptics)
                 }
-                Spacer()
-            }
-            .padding(.horizontal, 16).padding(.top, 16).padding(.bottom, 14)
-
-            Rectangle().fill(Color.gray.opacity(0.12)).frame(height: 1).padding(.horizontal, 16)
-
-            VStack(spacing: 0) {
-                ClimaToggleRow(icon: "textformat.abc",            iconColor: .green,  title: "Linguagem Simplificada", subtitle: "Textos mais curtos e fáceis de entender",  isOn: $accessibility.isSimplifiedMode)
-                toggleDivider
-                ClimaToggleRow(icon: "plus.magnifyingglass",      iconColor: .orange, title: "Ícones Grandes",          subtitle: "Aumenta ícones e áreas de toque",          isOn: $accessibility.useLargeIcons)
-                toggleDivider
-                ClimaToggleRow(icon: "circle.lefthalf.filled",    iconColor: .yellow, title: "Semáforo de Clima",       subtitle: "Mostra 🟢🟡🔴 se é seguro sair",          isOn: $accessibility.showVisualSummary)
-                toggleDivider
-                ClimaToggleRow(icon: "eye.slash",                 iconColor: .blue,   title: "Reduzir Informações",     subtitle: "Mostra só o essencial",                    isOn: $accessibility.reduceInformation)
-                toggleDivider
-                ClimaToggleRow(icon: "iphone.radiowaves.left.and.right", iconColor: .pink, title: "Vibração Reforçada", subtitle: "Vibra mais forte ao tocar nos botões",     isOn: $accessibility.enhancedHaptics)
-            }
-            .padding(.vertical, 4)
-
-            Rectangle().fill(Color.gray.opacity(0.12)).frame(height: 1).padding(.horizontal, 16)
-
-            HStack(spacing: 10) {
-                Button(action: {
-                    HapticManager.shared.trigger(.medium)
-                    withAnimation(.easeInOut(duration: 0.2)) { accessibility.enableAll() }
-                }) {
-                    HStack(spacing: 5) {
-                        Image(systemName: "checkmark.circle.fill").font(.system(size: 13))
-                        Text("Ativar Tudo").font(.system(size: 13, weight: .semibold, design: .rounded))
+                divider
+                HStack(spacing: ClimaSpacing.sm) {
+                    ClimaButton("Ativar Tudo", icon: "checkmark.circle.fill", size: .small) {
+                        HapticManager.shared.trigger(.medium)
+                        withAnimation(.easeInOut(duration: 0.2)) { accessibility.enableAll() }
                     }
-                    .foregroundColor(.white).frame(maxWidth: .infinity).padding(.vertical, 11)
-                    .background(RoundedRectangle(cornerRadius: 10).fill(LinearGradient(colors: [Color.green.opacity(0.85), Color.green.opacity(0.65)], startPoint: .leading, endPoint: .trailing)))
-                }
-                Button(action: {
-                    HapticManager.shared.trigger(.light)
-                    withAnimation(.easeInOut(duration: 0.2)) { accessibility.disableAll() }
-                }) {
-                    HStack(spacing: 5) {
-                        Image(systemName: "xmark.circle.fill").font(.system(size: 13))
-                        Text("Desativar Tudo").font(.system(size: 13, weight: .semibold, design: .rounded))
+                    ClimaButton("Desativar Tudo", icon: "xmark.circle.fill", variant: .secondary, size: .small) {
+                        HapticManager.shared.trigger(.light)
+                        withAnimation(.easeInOut(duration: 0.2)) { accessibility.disableAll() }
                     }
-                    .foregroundColor(.white).frame(maxWidth: .infinity).padding(.vertical, 11)
-                    .background(RoundedRectangle(cornerRadius: 10).fill(LinearGradient(colors: [Color.pink.opacity(0.75), Color.red.opacity(0.55)], startPoint: .leading, endPoint: .trailing)))
                 }
             }
-            .padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 16)
         }
-        .background(
-            RoundedRectangle(cornerRadius: 18)
-                .fill(Color.white.opacity(0.55))
-                .shadow(color: Color.cyan.opacity(0.08), radius: 12, x: 0, y: 4)
-        )
-        .overlay(RoundedRectangle(cornerRadius: 18).stroke(Color.cyan.opacity(0.18), lineWidth: 1))
-    }
-
-    private var toggleDivider: some View {
-        Rectangle().fill(Color.gray.opacity(0.08)).frame(height: 1).padding(.leading, 58).padding(.trailing, 16)
     }
 
     // MARK: - Sobre
 
-    var aboutCard: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 10) {
-                Image(systemName: "info.circle.fill")
-                    .font(.system(size: 16, weight: .semibold)).foregroundColor(.purple)
-                    .frame(width: 32, height: 32).background(Color.purple.opacity(0.12)).clipShape(RoundedRectangle(cornerRadius: 8))
-                Text("Sobre")
-                    .font(.system(size: 16, weight: .semibold, design: .rounded))
-                    .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.32))
-                Spacer()
+    private var aboutCard: some View {
+        ClimaGlassCard {
+            VStack(alignment: .leading, spacing: ClimaSpacing.sm) {
+                cardHeader(icon: "info.circle.fill", tint: ClimaColor.lavender, title: "Sobre")
+                divider
+                aboutRow("Versão", "1.0.0")
+                aboutRow("Desenvolvido por", "ClimaAgora")
+                aboutRow("Dados climáticos", "OpenWeather")
             }
-            .padding(.horizontal, 16).padding(.top, 16).padding(.bottom, 12)
-
-            Rectangle().fill(Color.gray.opacity(0.1)).frame(height: 1).padding(.horizontal, 16)
-
-            aboutRow(label: "Versão",          value: "1.0.0")
-            Rectangle().fill(Color.gray.opacity(0.06)).frame(height: 1).padding(.leading, 58).padding(.trailing, 16)
-            aboutRow(label: "Desenvolvido por", value: "ClimaAgora")
-            Rectangle().fill(Color.gray.opacity(0.06)).frame(height: 1).padding(.leading, 58).padding(.trailing, 16)
-            aboutRow(label: "Dados climáticos", value: "OpenWeather")
         }
-        .padding(.bottom, 12).background(cardBackground)
     }
 
-    private func aboutRow(label: String, value: String) -> some View {
+    private func aboutRow(_ label: String, _ value: String) -> some View {
         HStack {
-            Text(label).font(.system(size: 14)).foregroundColor(Color(red: 0.45, green: 0.45, blue: 0.55))
+            Text(label).font(.system(size: 14)).foregroundStyle(ClimaColor.textSecondary)
             Spacer()
-            Text(value).font(.system(size: 14, weight: .medium)).foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.32))
+            Text(value).font(.system(size: 14, weight: .medium)).foregroundStyle(ClimaColor.textPrimary)
         }
-        .padding(.horizontal, 16).padding(.vertical, 10)
-    }
-
-    private var cardBackground: some View {
-        RoundedRectangle(cornerRadius: 18)
-            .fill(Color.white.opacity(0.55))
-            .shadow(color: Color.black.opacity(0.04), radius: 10, x: 0, y: 4)
+        .padding(.vertical, 2)
     }
 }
