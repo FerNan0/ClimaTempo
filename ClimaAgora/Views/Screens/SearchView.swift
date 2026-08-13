@@ -33,9 +33,10 @@ struct SearchView: View {
             Spacer()
             Button(action: { dismiss() }) {
                 Image(systemName: "xmark")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundColor(.white)
-                    .frame(width: 44, height: 44)
+                    .frame(width: 34, height: 34)
+                    .background(Circle().fill(Color.white.opacity(0.22)))
             }
         }
         .padding(ClimaSpacing.md)
@@ -46,7 +47,8 @@ struct SearchView: View {
 
     private var searchBarView: some View {
         ClimaTextField("Digite a cidade... (mín. 3 caracteres)", text: $searchText)
-            .padding(ClimaSpacing.md)
+            .padding(.horizontal, ClimaSpacing.md)
+            .padding(.top, ClimaSpacing.md)
             .onChange(of: searchText) { _, newValue in
                 viewModel.search(newValue)
             }
@@ -71,13 +73,13 @@ struct SearchView: View {
     }
 
     private func resultsList(title: String, cities: [String]) -> some View {
-        VStack(alignment: .leading, spacing: ClimaSpacing.sm) {
+        VStack(alignment: .leading, spacing: ClimaSpacing.sm + 2) {
             ClimaSectionHeader(title)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, ClimaSpacing.md)
 
             ForEach(cities, id: \.self) { city in
-                ClimaListRow(city) {
+                ClimaListRow(city, icon: "location.fill") {
                     HapticManager.shared.trigger(.light)
                     viewModel.selectCity(city)
                     dismiss()

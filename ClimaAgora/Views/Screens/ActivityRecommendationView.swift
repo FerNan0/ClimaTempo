@@ -34,13 +34,10 @@ struct ActivityRecommendationView: View {
                 .padding()
                 .background(ClimaGradient.brand)
 
-                // Tab Selector
-                HStack(spacing: 0) {
-                    TabButton(title: "Recomendações", isSelected: selectedTab == 0) { selectedTab = 0 }
-                    TabButton(title: "Atividades",    isSelected: selectedTab == 1) { selectedTab = 1 }
-                }
-                .padding(.horizontal)
-                .padding(.vertical, 12)
+                // Tab Selector (padrão v2: pills segmentadas do ClimaUI)
+                ClimaSegmented([0, 1], selection: $selectedTab) { $0 == 0 ? "Recomendações" : "Atividades" }
+                    .padding(.horizontal)
+                    .padding(.vertical, 12)
 
                 if viewModel.state == .loading {
                     Spacer()
@@ -196,28 +193,6 @@ struct CategoryLegendView: View {
     }
 }
 
-struct TabButton: View {
-    let title: String
-    let isSelected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.callout).fontWeight(.semibold)
-                .foregroundColor(isSelected ? ClimaColor.textPrimary : ClimaColor.textTertiary)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
-                .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(isSelected ? Color.white.opacity(0.6) : Color.clear)
-                        .shadow(color: isSelected ? Color.black.opacity(0.05) : Color.clear, radius: 4, x: 0, y: 2)
-                )
-        }
-        .accessibleButton(label: title, hint: isSelected ? "Aba selecionada" : "Toque para selecionar")
-    }
-}
-
 struct WeatherInfoCard: View {
     let weather: Weather
     var body: some View {
@@ -248,8 +223,10 @@ struct AIResponseCard: View {
     var body: some View {
         ClimaCard {
             VStack(alignment: .leading, spacing: ClimaSpacing.sm + 4) {
-                Text(title).font(.headline).foregroundColor(ClimaColor.textPrimary)
-                Text(content).font(.body).foregroundColor(ClimaColor.textSecondary).lineLimit(nil).lineSpacing(3)
+                Text(title)
+                    .font(.system(size: 17, weight: .heavy, design: .rounded))
+                    .foregroundColor(ClimaColor.textPrimary)
+                ClimaMarkdownText(content)
             }
         }
         .accessibilityElement(children: .combine).accessibilityLabel("\(title). \(content)")
@@ -263,10 +240,12 @@ struct RecommendationCard: View {
             VStack(alignment: .leading, spacing: ClimaSpacing.sm) {
                 HStack {
                     Text(emoji).font(.title2)
-                    Text(title).font(.headline).foregroundColor(ClimaColor.textPrimary)
+                    Text(title)
+                        .font(.system(size: 16, weight: .heavy, design: .rounded))
+                        .foregroundColor(ClimaColor.textPrimary)
                     Spacer()
                 }
-                Text(content).font(.callout).foregroundColor(ClimaColor.textSecondary).lineLimit(nil).lineSpacing(2)
+                ClimaMarkdownText(content)
             }
         }
         .accessibilityElement(children: .combine).accessibilityLabel("\(title). \(content)")
