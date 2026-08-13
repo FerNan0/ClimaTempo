@@ -42,6 +42,7 @@ final class MockFetchAIUseCase: FetchAIRecommendationsUseCaseProtocol {
     func generateRecommendation(_ request: AIRecommendationRequest) async -> String? { "recomendação" }
     func generateActivities(_ request: AIRecommendationRequest) async -> String? { "atividades" }
     func generateStructuredActivities(_ request: AIRecommendationRequest) async -> [StructuredActivity]? { nil }
+    func generateSimplifiedAdvice(weather: Weather) async -> SimplifiedAdvice? { nil }
 }
 
 final class MockManageFavoritesUseCase: ManageFavoritesUseCaseProtocol {

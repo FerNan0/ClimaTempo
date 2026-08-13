@@ -56,6 +56,17 @@ struct GeneratedActivityList {
     @Guide(description: "Lista de atividades recomendadas para o clima atual", .count(5))
     var activities: [GeneratedActivity]
 }
+
+@available(iOS 26.0, *)
+@Generable
+struct GeneratedSimplifiedAdvice {
+    @Guide(description: "Como está o tempo, 1 frase de até 8 palavras, começando com um emoji")
+    var weatherPhrase: String
+    @Guide(description: "O que fazer agora, 1 frase de até 8 palavras, começando com um emoji")
+    var advice: String
+    @Guide(description: "Aviso de cuidado se houver perigo (até 8 palavras com emoji), ou string vazia")
+    var caution: String
+}
 #endif
 
 // MARK: - Disponibilidade
@@ -196,6 +207,39 @@ class FoundationModelsService {
                 return mapped.isEmpty ? nil : mapped
             } catch {
                 print("⚠️ [FoundationModels] Guided generation falhou: \(error.localizedDescription)")
+                return nil
+            }
+        }
+        #endif
+        return nil
+    }
+
+    // MARK: - Conselho simples (Guided Generation — modo simples full-screen)
+
+    /// Gera um conselho de clima em linguagem simples (Plain Language) já
+    /// estruturado, on-device. Retorna `nil` quando indisponível (o chamador
+    /// usa o fallback determinístico).
+    func generateSimplifiedAdvice(weather: WeatherData) async -> SimplifiedAdvice? {
+        #if canImport(FoundationModels)
+        if #available(iOS 26.0, *) {
+            let prompt = """
+            Você fala de forma MUITO SIMPLES, como para uma criança de 10 anos.
+            CLIMA em \(weather.city): \(Int(weather.temperature))°C, \(weather.description), \
+            umidade \(weather.humidity)%.
+            Dê um conselho curto e acolhedor. Frases de até 8 palavras, com emoji.
+            """
+            do {
+                let session = LanguageModelSession()
+                let out = try await session.respond(to: prompt, generating: GeneratedSimplifiedAdvice.self)
+                let c = out.content
+                let caution = c.caution.trimmingCharacters(in: .whitespacesAndNewlines)
+                return SimplifiedAdvice(
+                    weatherPhrase: c.weatherPhrase,
+                    advice: c.advice,
+                    caution: caution.isEmpty ? nil : caution
+                )
+            } catch {
+                print("⚠️ [FoundationModels] Conselho simples falhou: \(error.localizedDescription)")
                 return nil
             }
         }

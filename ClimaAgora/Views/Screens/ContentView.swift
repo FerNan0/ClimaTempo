@@ -13,6 +13,7 @@ struct ContentView: View {
     let router: AppRouting
     @ObservedObject var locationManager: LocationManager
     @ObservedObject private var engine = AdaptiveEngine.shared
+    @ObservedObject private var accessibility = CognitiveAccessibilityManager.shared
     @State private var cogSheetOpen = false
 
     var body: some View {
@@ -73,7 +74,19 @@ struct ContentView: View {
         case .idle, .loading:
             Spacer()
         case .loaded:
-            if let weather = viewModel.weather { weatherContent(weather) }
+            if let weather = viewModel.weather {
+                if accessibility.isSimplifiedMode {
+                    SimplifiedHomeView(
+                        weather: weather,
+                        advice: viewModel.simplifiedAdvice ?? .fallback(for: weather),
+                        convert: convertInt
+                    ) {
+                        withAnimation { accessibility.isSimplifiedMode = false }
+                    }
+                } else {
+                    weatherContent(weather)
+                }
+            }
         case .failed:
             noConnection
         }

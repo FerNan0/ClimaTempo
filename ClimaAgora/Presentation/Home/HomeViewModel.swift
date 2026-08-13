@@ -50,6 +50,8 @@ final class HomeViewModel: ObservableObject {
     @Published var forecastPeriod: ForecastPeriod = .sevenDays
     @Published private(set) var clothingSuggestion: String?
     @Published private(set) var activitySuggestion: String?
+    /// Conselho em linguagem simples para o modo simples full-screen (on-device).
+    @Published private(set) var simplifiedAdvice: SimplifiedAdvice?
     @Published private(set) var isLoadingIA = false
     @Published private(set) var isFavorite = false
 
@@ -177,8 +179,11 @@ final class HomeViewModel: ObservableObject {
         Task {
             async let clothing = fetchAIUseCase.suggestClothing(weather: weather)
             async let activity = fetchAIUseCase.suggestActivity(weather: weather)
+            async let advice   = fetchAIUseCase.generateSimplifiedAdvice(weather: weather)
             clothingSuggestion = await clothing
             activitySuggestion = await activity
+            // Conselho simples on-device; se indisponível, usa o fallback determinístico.
+            simplifiedAdvice = await advice ?? SimplifiedAdvice.fallback(for: weather)
             isLoadingIA = false
         }
     }

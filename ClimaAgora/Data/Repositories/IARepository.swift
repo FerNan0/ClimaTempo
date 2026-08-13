@@ -117,6 +117,13 @@ final class IARepository: IARepositoryProtocol {
         )
     }
 
+    func generateSimplifiedAdvice(weather: Weather) async -> SimplifiedAdvice? {
+        // Conselho simples só via Guided Generation on-device (iOS 26+).
+        guard isFoundationModelsAvailable() else { return nil }
+        let data = WeatherData(from: weather)
+        return await FoundationModelsService.shared.generateSimplifiedAdvice(weather: data)
+    }
+
     // MARK: - Roteamento interno
 
     private func route(
