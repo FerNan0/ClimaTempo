@@ -31,6 +31,26 @@ final class WeatherRepository: WeatherRepositoryProtocol {
         return ForecastMapper.map(dto)
     }
 
+    // MARK: - Próximas horas (deriva da mesma previsão de 3h)
+
+    func fetchHourly(for city: String) async throws -> [HourlyForecast] {
+        let encoded = city.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? city
+        let url = "\(baseURL)/forecast?q=\(encoded)&appid=\(apiKey)&units=metric&lang=pt_br&cnt=8"
+        let dto: OpenWeatherForecastResponse = try await client.get(url)
+        return HourlyMapper.map(dto)
+    }
+
+    // MARK: - Qualidade do ar (Air Pollution API, por lat/lon)
+
+    func fetchAirQuality(latitude: Double, longitude: Double) async throws -> AirQuality {
+        let url = "\(baseURL)/air_pollution?lat=\(latitude)&lon=\(longitude)&appid=\(apiKey)"
+        let dto: OpenWeatherAirPollutionResponse = try await client.get(url)
+        guard let aq = AirQualityMapper.map(dto) else {
+            throw NetworkError.decodingError(NetworkError.invalidURL)
+        }
+        return aq
+    }
+
     // MARK: - Geocodificação (busca de cidades)
 
     func searchCities(query: String) async throws -> [String] {

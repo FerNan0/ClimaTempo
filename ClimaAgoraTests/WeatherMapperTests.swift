@@ -15,6 +15,7 @@ struct WeatherMapperTests {
     @Test func mapsDTOToDomainModel() {
         let dto = OpenWeatherResponse(
             name: "Lisboa",
+            coord: OpenWeatherCoord(lat: 38.72, lon: -9.14),
             main: OpenWeatherMain(temp: 18.5, feels_like: 17.0, humidity: 72),
             weather: [OpenWeatherInfo(main: "Rain", description: "chuva leve")],
             wind: OpenWeatherWind(speed: 9.3),
@@ -39,6 +40,7 @@ struct WeatherMapperTests {
     @Test func emptyWeatherArrayFallsBackToEmptyStrings() {
         let dto = OpenWeatherResponse(
             name: "Cidade",
+            coord: OpenWeatherCoord(lat: 0, lon: 0),
             main: OpenWeatherMain(temp: 20, feels_like: 20, humidity: 50),
             weather: [],
             wind: OpenWeatherWind(speed: 5),
@@ -56,30 +58,40 @@ struct WeatherMapperTests {
 
 struct ForecastMapperTests {
 
-    @Test func collapsesToOnePerDayAndCapsAtFive() {
-        // 3 slots no mesmo dia + 6 dias seguintes → espera no máximo 5 dias.
+    @Test func collapsesPointsToOnePerDay() {
+        // 4 pontos no mesmo dia + 2 dias seguintes → 3 dias distintos.
         let day: TimeInterval = 86_400
-        let base = 1_700_000_000.0
+        let base = Calendar.current.startOfDay(for: Date()).timeIntervalSince1970 + 3600
         var items: [OpenWeatherForecastItem] = []
+        for h in 0..<4 { items.append(makeItem(dt: base + Double(h) * 3 * 3600, temp: 20)) }
+        for d in 1...2 { items.append(makeItem(dt: base + Double(d) * day, temp: 20)) }
 
-        // mesmo dia (3 slots de 3h)
-        for h in 0..<3 {
-            items.append(makeItem(dt: base + Double(h) * 3 * 3600))
-        }
-        // próximos 6 dias
-        for d in 1...6 {
-            items.append(makeItem(dt: base + Double(d) * day))
+        let result = ForecastMapper.map(OpenWeatherForecastResponse(list: items))
+
+        #expect(result.count == 3)
+    }
+
+    @Test func aggregatesRealMinAndMaxPerDay() {
+        // Vários pontos no MESMO dia com temperaturas diferentes:
+        // o mapper deve extrair a mínima e a máxima reais (não tempMax == tempMin).
+        let base = Calendar.current.startOfDay(for: Date()).timeIntervalSince1970 + 3600
+        let temps: [Double] = [14, 19, 25, 21]
+        let items = temps.enumerated().map { i, t in
+            makeItem(dt: base + Double(i) * 3 * 3600, temp: t)
         }
 
         let result = ForecastMapper.map(OpenWeatherForecastResponse(list: items))
 
-        #expect(result.count == 5) // 7 dias distintos, limitado a 5
+        #expect(result.count == 1)
+        #expect(result[0].tempMin == 14)
+        #expect(result[0].tempMax == 25)
+        #expect(result[0].tempMax != result[0].tempMin)
     }
 
-    private func makeItem(dt: Double) -> OpenWeatherForecastItem {
+    private func makeItem(dt: Double, temp: Double) -> OpenWeatherForecastItem {
         OpenWeatherForecastItem(
             dt: Int(dt),
-            main: OpenWeatherMain(temp: 22, feels_like: 22, humidity: 60),
+            main: OpenWeatherMain(temp: temp, feels_like: temp, humidity: 60),
             weather: [OpenWeatherInfo(main: "Clear", description: "céu limpo")],
             wind: OpenWeatherWind(speed: 4),
             clouds: OpenWeatherClouds(all: 10),
