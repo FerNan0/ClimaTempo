@@ -65,6 +65,12 @@ final class HomeViewModel: ObservableObject {
         ForecastSummary.from(visibleForecast)
     }
 
+    /// Avisos de risco do tempo (determinístico, on-device). Vazio = sem risco.
+    var weatherRisks: [WeatherRisk] {
+        guard let weather else { return [] }
+        return WeatherRiskAssessor.assess(weather: weather, forecast: forecast)
+    }
+
     @Published var cityName = "São Paulo"
     @Published var temperatureUnit: TemperatureUnit = .celsius
 

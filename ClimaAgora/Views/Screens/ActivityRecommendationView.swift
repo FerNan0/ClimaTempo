@@ -206,7 +206,7 @@ struct WeatherInfoCard: View {
                 .font(.footnote).foregroundColor(ClimaColor.textSecondary)
                 Spacer()
                 VStack(alignment: .trailing, spacing: 8) {
-                    HStack(spacing: 4) { Image(systemName: "wind"); Text("\(String(format: "%.1f", weather.windSpeed)) km/h") }
+                    HStack(spacing: 4) { Image(systemName: "wind"); Text("\(String(format: "%.0f", weather.windKmh)) km/h") }
                     HStack(spacing: 4) { Image(systemName: "eye"); Text("\(Double(weather.visibility) / 1000, specifier: "%.1f") km") }
                     HStack(spacing: 4) { Image(systemName: "sun.max"); Text("UV: \(Int(weather.uvIndex))") }
                 }

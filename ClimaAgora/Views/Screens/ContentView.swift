@@ -79,7 +79,8 @@ struct ContentView: View {
                     SimplifiedHomeView(
                         weather: weather,
                         advice: viewModel.simplifiedAdvice ?? .fallback(for: weather),
-                        convert: convertInt
+                        convert: convertInt,
+                        risks: viewModel.weatherRisks
                     ) {
                         withAnimation { accessibility.isSimplifiedMode = false }
                     }
@@ -95,6 +96,11 @@ struct ContentView: View {
     private func weatherContent(_ weather: Weather) -> some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: ClimaSpacing.md) {
+                if showRiskCard {
+                    WeatherRiskCard(risks: viewModel.weatherRisks,
+                                    simplified: false,
+                                    largeIcons: accessibility.useLargeIcons)
+                }
                 hero(weather)
                 statsRow(weather)
 
@@ -132,6 +138,13 @@ struct ContentView: View {
         Int(viewModel.convertTemperature(celsius).rounded())
     }
 
+    /// Mostra o card de risco quando há aviso; sem risco, só mostra o "tudo
+    /// tranquilo" se o usuário quer o semáforo e não pediu para reduzir infos.
+    private var showRiskCard: Bool {
+        !viewModel.weatherRisks.isEmpty ||
+        (accessibility.showVisualSummary && !accessibility.reduceInformation)
+    }
+
     // MARK: - Hero (clicável → alimenta o motor de fricção)
 
     private func hero(_ weather: Weather) -> some View {
@@ -160,7 +173,7 @@ struct ContentView: View {
     private func statsRow(_ weather: Weather) -> some View {
         HStack(spacing: ClimaSpacing.sm) {
             statTile("💧", "\(weather.humidity)%", "Umidade")
-            statTile("💨", "\(String(format: "%.1f", weather.windSpeed)) km/h", "Vento")
+            statTile("💨", "\(String(format: "%.0f", weather.windKmh)) km/h", "Vento")
             statTile("☀️", "\(Int(weather.uvIndex))", "Índice UV")
         }
     }

@@ -59,6 +59,10 @@ struct Weather: Identifiable, Equatable {
         self.longitude = longitude
     }
 
+    /// Velocidade do vento em km/h. A API devolve em m/s (units=metric); esta é
+    /// a forma correta de exibir "km/h" na tela (× 3,6).
+    var windKmh: Double { windSpeed * 3.6 }
+
     /// Progresso do sol entre o nascer (0) e o pôr (1) num instante — puro,
     /// para posicionar o sol no arco do card "nascer / pôr do sol".
     /// Fora do intervalo diurno, satura em 0 ou 1.
