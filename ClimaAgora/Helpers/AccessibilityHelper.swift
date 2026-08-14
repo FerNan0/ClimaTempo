@@ -139,39 +139,16 @@ enum WeatherSafetyLevel: String {
         }
     }
     
-    /// Avalia o nível de segurança com base no clima
+    /// Avalia o nível de segurança com base no clima.
+    /// Delega ao `WeatherRiskAssessor` (fonte única de limiares) — assim o
+    /// semáforo e os avisos detalhados nunca discordam, e o bug de unidade do
+    /// vento (m/s tratado como km/h) fica corrigido aqui também.
     static func evaluate(weather: Weather) -> WeatherSafetyLevel {
-        let temp = weather.temperature
-        let condition = weather.condition.lowercased()
-        let wind = weather.windSpeed
-        let uv = weather.uvIndex
-        
-        // Condições perigosas
-        if condition.contains("thunderstorm") || condition.contains("thunder") {
-            return .danger
+        switch WeatherRiskAssessor.overallLevel(WeatherRiskAssessor.assess(weather: weather)) {
+        case .safe:      return .safe
+        case .attention: return .caution
+        case .danger:    return .danger
         }
-        if temp < 0 || temp > 42 {
-            return .danger
-        }
-        if wind > 60 {
-            return .danger
-        }
-        
-        // Condições de atenção
-        if condition.contains("rain") || condition.contains("drizzle") {
-            return .caution
-        }
-        if temp < 5 || temp > 35 {
-            return .caution
-        }
-        if uv > 8 {
-            return .caution
-        }
-        if wind > 40 {
-            return .caution
-        }
-        
-        return .safe
     }
 }
 

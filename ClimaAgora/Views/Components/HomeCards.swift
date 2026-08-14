@@ -28,6 +28,7 @@ struct SimplifiedHomeView: View {
     let weather: Weather
     let advice: SimplifiedAdvice
     let convert: (Double) -> Int
+    var risks: [WeatherRisk] = []
     let onExit: () -> Void
 
     var body: some View {
@@ -37,6 +38,11 @@ struct SimplifiedHomeView: View {
                 .foregroundStyle(ClimaColor.cyan)
                 .padding(.horizontal, ClimaSpacing.md).padding(.vertical, ClimaSpacing.sm)
                 .background(Capsule().fill(ClimaColor.cyan.opacity(0.15)))
+
+            // Em modo simples, só avisa quando há risco de verdade (sem "tudo certo").
+            if !risks.isEmpty {
+                WeatherRiskCard(risks: risks, simplified: true, largeIcons: true)
+            }
 
             Spacer(minLength: 0)
 
