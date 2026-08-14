@@ -29,6 +29,7 @@ struct SimplifiedHomeView: View {
     let advice: SimplifiedAdvice
     let convert: (Double) -> Int
     var risks: [WeatherRisk] = []
+    var officialAlerts: [OfficialAlert] = []
     let onExit: () -> Void
 
     var body: some View {
@@ -39,8 +40,11 @@ struct SimplifiedHomeView: View {
                 .padding(.horizontal, ClimaSpacing.md).padding(.vertical, ClimaSpacing.sm)
                 .background(Capsule().fill(ClimaColor.cyan.opacity(0.15)))
 
-            // Em modo simples, só avisa quando há risco de verdade (sem "tudo certo").
-            if !risks.isEmpty {
+            // Em modo simples, avisa só o mais importante: aviso oficial se houver,
+            // senão o risco local mais grave (sem "tudo certo", pra não poluir).
+            if let alert = officialAlerts.first {
+                OfficialAlertCard(alert: alert, simplified: true, largeIcons: true)
+            } else if !risks.isEmpty {
                 WeatherRiskCard(risks: risks, simplified: true, largeIcons: true)
             }
 

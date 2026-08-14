@@ -47,6 +47,8 @@ final class HomeViewModel: ObservableObject {
     @Published private(set) var forecast: [DailyForecast] = []
     @Published private(set) var hourly: [HourlyForecast] = []
     @Published private(set) var airQuality: AirQuality?
+    /// Avisos oficiais (INMET) que cobrem a localização atual.
+    @Published private(set) var officialAlerts: [OfficialAlert] = []
     @Published var forecastPeriod: ForecastPeriod = .sevenDays
     @Published private(set) var clothingSuggestion: String?
     @Published private(set) var activitySuggestion: String?
@@ -82,6 +84,7 @@ final class HomeViewModel: ObservableObject {
     private let fetchAirQualityUseCase: FetchAirQualityUseCaseProtocol
     private let fetchAIUseCase: FetchAIRecommendationsUseCaseProtocol
     private let manageFavoritesUseCase: ManageFavoritesUseCaseProtocol
+    private let fetchOfficialAlertsUseCase: FetchOfficialAlertsUseCaseProtocol
 
     init(
         fetchWeatherUseCase: FetchWeatherUseCaseProtocol,
@@ -89,7 +92,8 @@ final class HomeViewModel: ObservableObject {
         fetchHourlyUseCase: FetchHourlyForecastUseCaseProtocol,
         fetchAirQualityUseCase: FetchAirQualityUseCaseProtocol,
         fetchAIUseCase: FetchAIRecommendationsUseCaseProtocol,
-        manageFavoritesUseCase: ManageFavoritesUseCaseProtocol
+        manageFavoritesUseCase: ManageFavoritesUseCaseProtocol,
+        fetchOfficialAlertsUseCase: FetchOfficialAlertsUseCaseProtocol
     ) {
         self.fetchWeatherUseCase     = fetchWeatherUseCase
         self.fetchForecastUseCase    = fetchForecastUseCase
@@ -97,6 +101,7 @@ final class HomeViewModel: ObservableObject {
         self.fetchAirQualityUseCase  = fetchAirQualityUseCase
         self.fetchAIUseCase          = fetchAIUseCase
         self.manageFavoritesUseCase  = manageFavoritesUseCase
+        self.fetchOfficialAlertsUseCase = fetchOfficialAlertsUseCase
     }
 
     // MARK: - Ciclo de vida
@@ -109,6 +114,7 @@ final class HomeViewModel: ObservableObject {
     func loadWeather(for city: String) {
         cityName = city
         state = .loading
+        officialAlerts = []   // limpa avisos da cidade anterior
 
         Task {
             async let weatherTask  = fetchWeatherUseCase.execute(.init(city: city))
@@ -127,6 +133,10 @@ final class HomeViewModel: ObservableObject {
                     airQuality = try? await fetchAirQualityUseCase.execute(
                         .init(latitude: result.latitude, longitude: result.longitude)
                     )
+                    // Avisos oficiais (INMET) — complemento; falha vira "sem avisos".
+                    officialAlerts = (try? await fetchOfficialAlertsUseCase.execute(
+                        .init(latitude: result.latitude, longitude: result.longitude)
+                    )) ?? []
                 }
                 state = .loaded
                 // Sinal de SUCESSO para o motor de adaptação (interação fluente

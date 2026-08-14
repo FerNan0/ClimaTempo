@@ -24,6 +24,7 @@ final class RouterManager: ObservableObject, AppRouting {
     private let weatherRepository: WeatherRepositoryProtocol
     private let iaRepository: IARepositoryProtocol
     private let favoritesRepository: FavoritesRepositoryProtocol
+    private let alertsRepository: AlertsRepositoryProtocol
 
     // Use cases (já como interfaces — é assim que as ViewModels os recebem)
     private let fetchWeather: FetchWeatherUseCaseProtocol
@@ -33,12 +34,14 @@ final class RouterManager: ObservableObject, AppRouting {
     private let searchCities: SearchCitiesUseCaseProtocol
     private let fetchAI: FetchAIRecommendationsUseCaseProtocol
     private let manageFavorites: ManageFavoritesUseCaseProtocol
+    private let fetchOfficialAlerts: FetchOfficialAlertsUseCaseProtocol
 
     init() {
         let client = NetworkClient()
         weatherRepository   = WeatherRepository(client: client)
         iaRepository        = IARepository(client: client)
         favoritesRepository = FavoritesRepository()
+        alertsRepository    = AlertsRepository(client: client)
 
         fetchWeather    = FetchWeatherUseCase(repository: weatherRepository)
         fetchForecast   = FetchForecastUseCase(repository: weatherRepository)
@@ -47,6 +50,7 @@ final class RouterManager: ObservableObject, AppRouting {
         searchCities    = SearchCitiesUseCase(repository: weatherRepository)
         fetchAI         = FetchAIRecommendationsUseCase(repository: iaRepository)
         manageFavorites = ManageFavoritesUseCase(repository: favoritesRepository)
+        fetchOfficialAlerts = FetchOfficialAlertsUseCase(repository: alertsRepository)
     }
 
     // MARK: - Fábricas de ViewModel
@@ -58,7 +62,8 @@ final class RouterManager: ObservableObject, AppRouting {
             fetchHourlyUseCase:      fetchHourly,
             fetchAirQualityUseCase:  fetchAirQuality,
             fetchAIUseCase:          fetchAI,
-            manageFavoritesUseCase:  manageFavorites
+            manageFavoritesUseCase:  manageFavorites,
+            fetchOfficialAlertsUseCase: fetchOfficialAlerts
         )
     }
 
