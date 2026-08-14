@@ -22,12 +22,12 @@
 
 | Clima | Avisos de risco | Buscar cidade |
 |:---:|:---:|:---:|
-| <img src="docs/screenshots/home.png" width="200"/> | <img src="docs/screenshots/avisos.png" width="200"/> | <img src="docs/screenshots/busca.png" width="200"/> |
+| <img src="docs/screenshots/home-v2.png" width="200"/> | <img src="docs/screenshots/avisos.png" width="200"/> | <img src="docs/screenshots/busca.png" width="200"/> |
 | Clima, previsão por período, próximas horas, sol e qualidade do ar | **O que pode acontecer e o que fazer** — avisos oficiais do INMET + motor local, com semáforo 🟢🟡🔴 | Recentes, favoritas com o clima atual e destinos "quero visitar" |
 
 | Atividades acessíveis | Controles + métricas | Adaptação automática |
 |:---:|:---:|:---:|
-| <img src="docs/screenshots/atividades.png" width="200"/> | <img src="docs/screenshots/configuracoes.png" width="200"/> | <img src="docs/screenshots/motor.png" width="200"/> |
+| <img src="docs/screenshots/atividades-v2.png" width="200"/> | <img src="docs/screenshots/configuracoes-v2.png" width="200"/> | <img src="docs/screenshots/motor.png" width="200"/> |
 | Recomendações em linguagem simples, com Markdown formatado | Unidades, adaptação automática e acessibilidade cognitiva | **Cognitive Sheet** — o motor explicado, com carga cognitiva e métricas ao vivo |
 
 </div>
