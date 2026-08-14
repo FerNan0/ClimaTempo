@@ -59,16 +59,16 @@ struct SettingsView: View {
 
     // MARK: - Cabeçalho de card (ícone tintado + título + subtítulo)
 
-    private func cardHeader(icon: String, tint: Color, title: String, subtitle: String? = nil) -> some View {
+    private func cardHeader(emoji: String, tint: Color, title: String, subtitle: String? = nil) -> some View {
         HStack(spacing: ClimaSpacing.sm + 2) {
-            Image(systemName: icon)
-                .font(.system(size: 16, weight: .semibold)).foregroundStyle(tint)
-                .frame(width: 32, height: 32)
-                .background(RoundedRectangle(cornerRadius: ClimaRadius.sm).fill(tint.opacity(0.14)))
+            Text(emoji)
+                .font(.system(size: 20))
+                .frame(width: 40, height: 40)
+                .background(RoundedRectangle(cornerRadius: ClimaRadius.md).fill(tint.opacity(0.16)))
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.system(size: 16, weight: .bold, design: .rounded)).foregroundStyle(ClimaColor.textPrimary)
+                Text(title).font(.system(size: 17, weight: .heavy, design: .rounded)).foregroundStyle(ClimaColor.textPrimary)
                 if let subtitle {
-                    Text(subtitle).font(.system(size: 11, weight: .medium)).foregroundStyle(ClimaColor.textTertiary)
+                    Text(subtitle).font(.system(size: 12, weight: .medium)).foregroundStyle(ClimaColor.textTertiary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -85,7 +85,7 @@ struct SettingsView: View {
     private var unitCard: some View {
         ClimaGlassCard {
             VStack(alignment: .leading, spacing: ClimaSpacing.md) {
-                cardHeader(icon: "thermometer.medium", tint: .orange, title: "Temperatura")
+                cardHeader(emoji: "🌡️", tint: .orange, title: "Temperatura")
                 ClimaSegmented(units, selection: $temperatureUnit) { $0 }
                     .onChange(of: temperatureUnit) { _, v in UserDefaults.standard.setValue(v, forKey: "temperatureUnit") }
             }
@@ -97,7 +97,7 @@ struct SettingsView: View {
     private var notificationsCard: some View {
         ClimaGlassCard {
             HStack(spacing: ClimaSpacing.sm + 2) {
-                cardHeader(icon: notificationsEnabled ? "bell.badge.fill" : "bell.fill",
+                cardHeader(emoji: "🔔",
                            tint: ClimaColor.safe,
                            title: "Notificações",
                            subtitle: notificationsEnabled ? "Ativadas" : "Desativadas")
@@ -116,19 +116,17 @@ struct SettingsView: View {
     private var adaptiveCard: some View {
         ClimaGlassCard {
             VStack(alignment: .leading, spacing: ClimaSpacing.md) {
-                cardHeader(icon: "wand.and.sparkles", tint: ClimaColor.indigo,
+                cardHeader(emoji: "🪄", tint: ClimaColor.indigo,
                            title: "Adaptação Automática",
                            subtitle: "O app percebe quando a tela está difícil e ajuda sozinho")
                 divider
                 VStack(spacing: ClimaSpacing.sm) {
-                    ClimaToggleRow(icon: "brain.filled.head.profile", iconColor: ClimaColor.indigo,
-                                   title: "Ativar adaptação automática",
+                    ClimaToggleRow(title: "Ativar adaptação automática",
                                    subtitle: "Sugere simplificar quando percebe dificuldade",
                                    isOn: $accessibility.automaticAdaptationEnabled)
                     if accessibility.automaticAdaptationEnabled {
-                        ClimaToggleRow(icon: "bolt.badge.automatic", iconColor: .orange,
-                                       title: "Simplificar sem perguntar",
-                                       subtitle: "Em caso de muita dificuldade, adapta sozinho (sempre reversível)",
+                        ClimaToggleRow(title: "Simplificar sem perguntar",
+                                       subtitle: "Em muita dificuldade, adapta sozinho (sempre reversível)",
                                        isOn: $accessibility.allowAutoApply)
                     }
                 }
@@ -169,16 +167,16 @@ struct SettingsView: View {
     private var accessibilityCard: some View {
         ClimaGlassCard {
             VStack(alignment: .leading, spacing: ClimaSpacing.md) {
-                cardHeader(icon: "brain.head.profile", tint: ClimaColor.cyan,
+                cardHeader(emoji: "🧠", tint: ClimaColor.cyan,
                            title: "Acessibilidade Cognitiva",
                            subtitle: "Facilita a compreensão das informações")
                 divider
                 VStack(spacing: ClimaSpacing.sm) {
-                    ClimaToggleRow(icon: "textformat.abc", iconColor: ClimaColor.safe, title: "Linguagem Simplificada", subtitle: "Textos mais curtos e fáceis de entender", isOn: $accessibility.isSimplifiedMode)
-                    ClimaToggleRow(icon: "plus.magnifyingglass", iconColor: .orange, title: "Ícones Grandes", subtitle: "Aumenta ícones e áreas de toque", isOn: $accessibility.useLargeIcons)
-                    ClimaToggleRow(icon: "circle.lefthalf.filled", iconColor: ClimaColor.caution, title: "Semáforo de Clima", subtitle: "Mostra 🟢🟡🔴 se é seguro sair", isOn: $accessibility.showVisualSummary)
-                    ClimaToggleRow(icon: "eye.slash", iconColor: ClimaColor.sky, title: "Reduzir Informações", subtitle: "Mostra só o essencial", isOn: $accessibility.reduceInformation)
-                    ClimaToggleRow(icon: "iphone.radiowaves.left.and.right", iconColor: ClimaColor.blush, title: "Vibração Reforçada", subtitle: "Vibra mais forte ao tocar nos botões", isOn: $accessibility.enhancedHaptics)
+                    ClimaToggleRow(title: "Linguagem Simplificada", subtitle: "Textos mais curtos e fáceis de entender", isOn: $accessibility.isSimplifiedMode)
+                    ClimaToggleRow(title: "Ícones Grandes", subtitle: "Aumenta ícones e áreas de toque", isOn: $accessibility.useLargeIcons)
+                    ClimaToggleRow(title: "Semáforo de Clima", subtitle: "Mostra 🟢🟡🔴 se é seguro sair", isOn: $accessibility.showVisualSummary)
+                    ClimaToggleRow(title: "Reduzir Informações", subtitle: "Mostra só o essencial", isOn: $accessibility.reduceInformation)
+                    ClimaToggleRow(title: "Vibração Reforçada", subtitle: "Vibra mais forte ao tocar nos botões", isOn: $accessibility.enhancedHaptics)
                 }
                 divider
                 HStack(spacing: ClimaSpacing.sm) {
@@ -200,7 +198,7 @@ struct SettingsView: View {
     private var aboutCard: some View {
         ClimaGlassCard {
             VStack(alignment: .leading, spacing: ClimaSpacing.sm) {
-                cardHeader(icon: "info.circle.fill", tint: ClimaColor.lavender, title: "Sobre")
+                cardHeader(emoji: "ℹ️", tint: ClimaColor.lavender, title: "Sobre")
                 divider
                 aboutRow("Versão", "1.0.0")
                 aboutRow("Desenvolvido por", "ClimaAgora")

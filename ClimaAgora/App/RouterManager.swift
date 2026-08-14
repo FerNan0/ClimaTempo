@@ -63,7 +63,12 @@ final class RouterManager: ObservableObject, AppRouting {
     }
 
     func makeSearchViewModel(onCitySelected: @escaping (String) -> Void) -> SearchViewModel {
-        SearchViewModel(useCase: searchCities, onCitySelected: onCitySelected)
+        SearchViewModel(
+            searchUseCase: searchCities,
+            fetchWeatherUseCase: fetchWeather,
+            manageFavoritesUseCase: manageFavorites,
+            onCitySelected: onCitySelected
+        )
     }
 
     func makeActivityViewModel(viewData: ActivityViewData) -> ActivityViewModel {

@@ -1,91 +1,136 @@
 import SwiftUI
 import ClimaUI
 
+// MARK: - SearchView — redesign v2 (handoff "buscar cidade")
+//
+// Sem header gradiente: campo de busca + "Cancelar" no topo, e abaixo três
+// blocos de descoberta — Recentes (chips), Favoritas (linha de vidro com o
+// clima atual) e "Quero visitar" (chips tracejados). Ao digitar 3+ letras,
+// o conteúdo dá lugar aos resultados da busca.
+
 struct SearchView: View {
     @StateObject var viewModel: SearchViewModel
     @Environment(\.dismiss) var dismiss
     @State private var searchText = ""
 
-    let popularCities = ["São Paulo", "Rio de Janeiro", "Brasília", "Salvador", "Curitiba",
-                         "Manaus", "Fortaleza", "Belo Horizonte", "Porto Alegre", "Recife"]
+    private var isSearching: Bool { searchText.trimmingCharacters(in: .whitespaces).count >= 3 }
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                ClimaGradient.surface.ignoresSafeArea()
+        ZStack {
+            ClimaGradient.surface.ignoresSafeArea()
 
-                VStack(spacing: 0) {
-                    headerView
-                    searchBarView
-                    resultsView
+            VStack(spacing: 0) {
+                searchBar
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: ClimaSpacing.lg) {
+                        if isSearching {
+                            resultsSection
+                        } else {
+                            if !viewModel.recents.isEmpty { recentsSection }
+                            if !viewModel.favorites.isEmpty { favoritesSection }
+                            wishlistSection
+                        }
+                    }
+                    .padding(.horizontal, ClimaSpacing.md)
+                    .padding(.top, ClimaSpacing.sm)
+                    .padding(.bottom, ClimaSpacing.xl)
                 }
             }
         }
+        .onAppear { viewModel.onAppear() }
     }
 
-    // MARK: - Header
+    // MARK: - Barra de busca (campo + Cancelar)
 
-    private var headerView: some View {
-        HStack {
-            Text("Procurar Cidade")
-                .font(ClimaFont.title)
-                .foregroundColor(.white)
-            Spacer()
-            Button(action: { dismiss() }) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(.white)
-                    .frame(width: 34, height: 34)
-                    .background(Circle().fill(Color.white.opacity(0.22)))
+    private var searchBar: some View {
+        HStack(spacing: ClimaSpacing.sm + 2) {
+            ClimaTextField("Buscar cidade", text: $searchText)
+                .onChange(of: searchText) { _, newValue in viewModel.search(newValue) }
+            Button("Cancelar") {
+                HapticManager.shared.trigger(.light)
+                dismiss()
             }
+            .font(.system(size: 16, weight: .bold, design: .rounded))
+            .foregroundStyle(ClimaColor.accent)
         }
-        .padding(ClimaSpacing.md)
-        .background(ClimaGradient.brand)
+        .padding(.horizontal, ClimaSpacing.md)
+        .padding(.top, ClimaSpacing.sm)
+        .padding(.bottom, ClimaSpacing.sm)
     }
 
-    // MARK: - Search Bar
+    // MARK: - Recentes (chips)
 
-    private var searchBarView: some View {
-        ClimaTextField("Digite a cidade... (mín. 3 caracteres)", text: $searchText)
-            .padding(.horizontal, ClimaSpacing.md)
-            .padding(.top, ClimaSpacing.md)
-            .onChange(of: searchText) { _, newValue in
-                viewModel.search(newValue)
-            }
-    }
-
-    // MARK: - Results
-
-    private var resultsView: some View {
-        ScrollView {
-            VStack(spacing: ClimaSpacing.sm + 4) {
-                if searchText.count >= 3 && viewModel.searchResults.isEmpty && viewModel.state != .loading {
-                    emptyState
-                } else if !viewModel.searchResults.isEmpty {
-                    resultsList(title: "Resultados da Busca", cities: viewModel.searchResults)
-                } else {
-                    resultsList(title: "Cidades Populares", cities: popularCities)
-                }
-                Spacer().frame(height: ClimaSpacing.md)
-            }
-            .padding(.top, ClimaSpacing.sm)
-        }
-    }
-
-    private func resultsList(title: String, cities: [String]) -> some View {
+    private var recentsSection: some View {
         VStack(alignment: .leading, spacing: ClimaSpacing.sm + 2) {
-            ClimaSectionHeader(title)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, ClimaSpacing.md)
+            sectionLabel("RECENTES")
+            ClimaFlowLayout(spacing: ClimaSpacing.sm, lineSpacing: ClimaSpacing.sm) {
+                ForEach(viewModel.recents, id: \.self) { city in
+                    ClimaPill(city) { select(city) }
+                }
+            }
+        }
+    }
 
-            ForEach(cities, id: \.self) { city in
-                ClimaListRow(city, icon: "location.fill") {
-                    HapticManager.shared.trigger(.light)
-                    viewModel.selectCity(city)
-                    dismiss()
+    // MARK: - Favoritas (linha de vidro com o clima atual)
+
+    private var favoritesSection: some View {
+        VStack(alignment: .leading, spacing: ClimaSpacing.sm + 2) {
+            sectionLabel("FAVORITAS", emoji: "❤️")
+            VStack(spacing: ClimaSpacing.sm) {
+                ForEach(viewModel.favorites) { favoriteRow($0) }
+            }
+        }
+    }
+
+    private func favoriteRow(_ fav: SearchViewModel.FavoriteWeather) -> some View {
+        Button { select(fav.city) } label: {
+            HStack(spacing: ClimaSpacing.sm + 2) {
+                Text(weatherEmoji(for: fav.condition ?? "")).font(.system(size: 22))
+                Text(fav.city)
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                    .foregroundStyle(ClimaColor.textPrimary)
+                Spacer()
+                if let temp = fav.temperature {
+                    Text("\(temp)°")
+                        .font(.system(size: 17, weight: .heavy, design: .rounded))
+                        .foregroundStyle(ClimaColor.textPrimary)
+                } else {
+                    ProgressView().scaleEffect(0.7)
                 }
             }
             .padding(.horizontal, ClimaSpacing.md)
+            .padding(.vertical, ClimaSpacing.md - 2)
+            .climaGlass(cornerRadius: ClimaRadius.lg)
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Quero visitar (chips tracejados)
+
+    private var wishlistSection: some View {
+        VStack(alignment: .leading, spacing: ClimaSpacing.sm + 2) {
+            sectionLabel("QUERO VISITAR", emoji: "🧭")
+            ClimaFlowLayout(spacing: ClimaSpacing.sm, lineSpacing: ClimaSpacing.sm) {
+                ForEach(viewModel.wishlist, id: \.self) { city in
+                    Button { select(city) } label: { ClimaDashedPill(city) }
+                        .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    // MARK: - Resultados da busca
+
+    private var resultsSection: some View {
+        VStack(alignment: .leading, spacing: ClimaSpacing.sm + 2) {
+            if viewModel.searchResults.isEmpty && viewModel.state != .loading {
+                emptyState
+            } else {
+                sectionLabel("RESULTADOS")
+                ForEach(viewModel.searchResults, id: \.self) { city in
+                    ClimaListRow(city, icon: "location.fill") { select(city) }
+                }
+            }
         }
     }
 
@@ -95,13 +140,31 @@ struct SearchView: View {
                 .font(.system(size: 40, weight: .thin))
                 .foregroundColor(ClimaColor.textTertiary.opacity(0.6))
             Text("Nenhuma cidade encontrada")
-                .font(ClimaFont.headline)
+                .font(.system(size: 16, weight: .bold, design: .rounded))
                 .foregroundColor(ClimaColor.textSecondary)
             Text("Tente outro nome")
-                .font(ClimaFont.callout)
+                .font(.system(size: 13))
                 .foregroundColor(ClimaColor.textTertiary)
         }
         .frame(maxWidth: .infinity)
-        .padding(ClimaSpacing.xl)
+        .padding(.top, ClimaSpacing.xl)
+    }
+
+    // MARK: - Helpers
+
+    private func select(_ city: String) {
+        HapticManager.shared.trigger(.light)
+        viewModel.selectCity(city)
+        dismiss()
+    }
+
+    private func sectionLabel(_ text: String, emoji: String? = nil) -> some View {
+        HStack(spacing: 6) {
+            if let emoji { Text(emoji).font(.system(size: 13)) }
+            Text(text)
+                .font(.system(size: 13, weight: .heavy, design: .rounded))
+                .foregroundStyle(ClimaColor.textTertiary)
+                .tracking(0.5)
+        }
     }
 }

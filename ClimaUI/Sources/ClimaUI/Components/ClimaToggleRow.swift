@@ -7,14 +7,14 @@ import SwiftUI
 
 public struct ClimaToggleRow: View {
 
-    private let icon: String
+    private let icon: String?
     private let iconColor: Color
     private let title: String
     private let subtitle: String
     @Binding private var isOn: Bool
 
     public init(
-        icon: String,
+        icon: String? = nil,
         iconColor: Color = ClimaColor.accent,
         title: String,
         subtitle: String,
@@ -29,12 +29,14 @@ public struct ClimaToggleRow: View {
 
     public var body: some View {
         HStack(spacing: ClimaSpacing.sm + 4) {
-            Image(systemName: icon)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(iconColor)
-                .frame(width: 28, height: 28)
-                .background(iconColor.opacity(0.12))
-                .clipShape(RoundedRectangle(cornerRadius: 7))
+            if let icon {
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(iconColor)
+                    .frame(width: 28, height: 28)
+                    .background(iconColor.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 7))
+            }
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(title)
