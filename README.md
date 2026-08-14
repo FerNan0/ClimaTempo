@@ -20,10 +20,15 @@
 
 <div align="center">
 
-| Clima | Adaptação automática | Atividades acessíveis | Controles + métricas |
-|:---:|:---:|:---:|:---:|
-| <img src="docs/screenshots/home.png" width="200"/> | <img src="docs/screenshots/motor.png" width="200"/> | <img src="docs/screenshots/atividades.png" width="200"/> | <img src="docs/screenshots/configuracoes.png" width="200"/> |
-| Clima, previsão por período, próximas horas, sol e qualidade do ar | **Cognitive Sheet** — o motor explicado, com carga cognitiva e métricas ao vivo | Semáforo de clima + cards de atividade em linguagem simples | Ligar/desligar a adaptação e ver a carga cognitiva em tempo real |
+| Clima | Avisos de risco | Buscar cidade |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/home.png" width="200"/> | <img src="docs/screenshots/avisos.png" width="200"/> | <img src="docs/screenshots/busca.png" width="200"/> |
+| Clima, previsão por período, próximas horas, sol e qualidade do ar | **O que pode acontecer e o que fazer** — avisos oficiais do INMET + motor local, com semáforo 🟢🟡🔴 | Recentes, favoritas com o clima atual e destinos "quero visitar" |
+
+| Atividades acessíveis | Controles + métricas | Adaptação automática |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/atividades.png" width="200"/> | <img src="docs/screenshots/configuracoes.png" width="200"/> | <img src="docs/screenshots/motor.png" width="200"/> |
+| Recomendações em linguagem simples, com Markdown formatado | Unidades, adaptação automática e acessibilidade cognitiva | **Cognitive Sheet** — o motor explicado, com carga cognitiva e métricas ao vivo |
 
 </div>
 
@@ -36,6 +41,7 @@ A maioria dos apps deixa a acessibilidade escondida em menus de configuração �
 - 🧠 **Adaptação automática** — o app estima a carga cognitiva a partir de sinais de comportamento (toques repetidos, erros, hesitação, idas e voltas) e, ao perceber dificuldade, **sugere** simplificar a tela. Nada de configuração manual.
 - 🗣️ **Linguagem simplificada por IA** — textos reescritos em frases curtas e vocabulário do dia a dia, gerados por um modelo de linguagem que roda **inteiramente no aparelho**.
 - 🚦 **Semáforo de clima** — indica de forma intuitiva (🟢🟡🔴) se é seguro sair de casa.
+- ⚠️ **Avisos de risco do tempo** — quando há risco (vento, tempestade, chuva, calor, frio, neblina…), o app diz **o que pode acontecer** e **o que fazer**, em linguagem simples. Junta os **avisos oficiais do INMET** — filtrados pela localização (*point-in-polygon*) e incluindo os que ainda vão começar — a um motor de risco **local, determinístico e on-device** (que também funciona offline).
 - 🎯 **Cards de atividade estruturados** — sugestões com ícone, categoria e nível de esforço, produzidas por *guided generation* (sem parsing frágil de texto).
 - 🙋 **Agência preservada** — a IA **convida, nunca impõe**: sugere antes de aplicar, tudo é reversível e transparente, e pode ser desligado por completo.
 - 🔒 **Privacidade por design** — os sinais de interação e a geração de texto ficam **no dispositivo**; nada é enviado para servidores.
