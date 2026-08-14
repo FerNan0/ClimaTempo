@@ -80,7 +80,8 @@ struct ContentView: View {
                         weather: weather,
                         advice: viewModel.simplifiedAdvice ?? .fallback(for: weather),
                         convert: convertInt,
-                        risks: viewModel.weatherRisks
+                        risks: viewModel.weatherRisks,
+                        officialAlerts: viewModel.officialAlerts
                     ) {
                         withAnimation { accessibility.isSimplifiedMode = false }
                     }
@@ -96,11 +97,7 @@ struct ContentView: View {
     private func weatherContent(_ weather: Weather) -> some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: ClimaSpacing.md) {
-                if showRiskCard {
-                    WeatherRiskCard(risks: viewModel.weatherRisks,
-                                    simplified: false,
-                                    largeIcons: accessibility.useLargeIcons)
-                }
+                alertsArea
                 hero(weather)
                 statsRow(weather)
 
@@ -138,11 +135,26 @@ struct ContentView: View {
         Int(viewModel.convertTemperature(celsius).rounded())
     }
 
-    /// Mostra o card de risco quando há aviso; sem risco, só mostra o "tudo
-    /// tranquilo" se o usuário quer o semáforo e não pediu para reduzir infos.
-    private var showRiskCard: Bool {
-        !viewModel.weatherRisks.isEmpty ||
-        (accessibility.showVisualSummary && !accessibility.reduceInformation)
+    /// Área de avisos no topo da Home: avisos OFICIAIS (INMET) primeiro, depois
+    /// o risco derivado on-device. Sem nada disso, só mostra "tudo tranquilo"
+    /// se o usuário quer o semáforo e não pediu para reduzir informações.
+    @ViewBuilder
+    private var alertsArea: some View {
+        ForEach(viewModel.officialAlerts) { alert in
+            OfficialAlertCard(alert: alert,
+                              simplified: false,
+                              largeIcons: accessibility.useLargeIcons)
+        }
+        if !viewModel.weatherRisks.isEmpty {
+            WeatherRiskCard(risks: viewModel.weatherRisks,
+                            simplified: false,
+                            largeIcons: accessibility.useLargeIcons)
+        } else if viewModel.officialAlerts.isEmpty,
+                  accessibility.showVisualSummary, !accessibility.reduceInformation {
+            WeatherRiskCard(risks: [],
+                            simplified: false,
+                            largeIcons: accessibility.useLargeIcons)
+        }
     }
 
     // MARK: - Hero (clicável → alimenta o motor de fricção)

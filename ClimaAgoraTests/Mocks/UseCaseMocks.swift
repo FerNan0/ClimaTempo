@@ -45,6 +45,11 @@ final class MockFetchAIUseCase: FetchAIRecommendationsUseCaseProtocol {
     func generateSimplifiedAdvice(weather: Weather) async -> SimplifiedAdvice? { nil }
 }
 
+final class MockFetchOfficialAlertsUseCase: FetchOfficialAlertsUseCaseProtocol {
+    var result: [OfficialAlert] = []
+    func execute(_ request: FetchOfficialAlertsRequest) async throws -> [OfficialAlert] { result }
+}
+
 final class MockManageFavoritesUseCase: ManageFavoritesUseCaseProtocol {
     var favorites: Set<String> = []
     func isFavorite(_ city: String) -> Bool { favorites.contains(city) }

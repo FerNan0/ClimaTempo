@@ -21,7 +21,8 @@ struct HomeViewModelTests {
             fetchHourlyUseCase:     MockFetchHourlyForecastUseCase(),
             fetchAirQualityUseCase: MockFetchAirQualityUseCase(),
             fetchAIUseCase:         MockFetchAIUseCase(),
-            manageFavoritesUseCase: favorites
+            manageFavoritesUseCase: favorites,
+            fetchOfficialAlertsUseCase: MockFetchOfficialAlertsUseCase()
         )
     }
 

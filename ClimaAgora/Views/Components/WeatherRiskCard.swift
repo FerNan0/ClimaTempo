@@ -15,7 +15,7 @@ struct WeatherRiskCard: View {
     var largeIcons: Bool = false
 
     private var main: WeatherRisk { risks.first ?? .allClear }
-    private var tint: Color { color(for: main.level) }
+    private var tint: Color { main.level.climaColor }
 
     var body: some View {
         VStack(alignment: .leading, spacing: ClimaSpacing.sm + 2) {
@@ -95,21 +95,13 @@ struct WeatherRiskCard: View {
                     .foregroundStyle(ClimaColor.textSecondary)
                     .padding(.horizontal, ClimaSpacing.sm)
                     .padding(.vertical, 4)
-                    .background(Capsule().fill(color(for: risk.level).opacity(0.14)))
+                    .background(Capsule().fill(risk.level.climaColor.opacity(0.14)))
                 }
             }
         }
     }
 
     // MARK: - Helpers
-
-    private func color(for level: WeatherRisk.Level) -> Color {
-        switch level {
-        case .safe:      return ClimaColor.safe
-        case .attention: return ClimaColor.caution
-        case .danger:    return ClimaColor.danger
-        }
-    }
 
     private var accessibilityText: String {
         var parts = ["\(main.level.label). \(main.title).",
@@ -119,6 +111,18 @@ struct WeatherRiskCard: View {
             parts.append("Também: " + risks.dropFirst().map(\.title).joined(separator: ", "))
         }
         return parts.joined(separator: " ")
+    }
+}
+
+// MARK: - Cor do nível (semáforo) — compartilhada pelos cards de risco/aviso
+
+extension WeatherRisk.Level {
+    var climaColor: Color {
+        switch self {
+        case .safe:      return ClimaColor.safe
+        case .attention: return ClimaColor.caution
+        case .danger:    return ClimaColor.danger
+        }
     }
 }
 
