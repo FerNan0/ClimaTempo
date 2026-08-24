@@ -103,13 +103,14 @@ struct WeatherSafetyLevelTests {
     // MARK: Condições SEGURAS (🟢)
     
     @Test func testSafeWeather_ClearDay() {
-        let weather = makeWeather(temp: 22, condition: "Clear", windSpeed: 10, uvIndex: 5)
+        // windSpeed é m/s (unidade da API) — 3 m/s é brisa leve, não "vento forte".
+        let weather = makeWeather(temp: 22, condition: "Clear", windSpeed: 3, uvIndex: 5)
         let level = WeatherSafetyLevel.evaluate(weather: weather)
         #expect(level == .safe)
     }
-    
+
     @Test func testSafeWeather_PleasantTemp() {
-        let weather = makeWeather(temp: 25, condition: "Partly Cloudy", windSpeed: 15, uvIndex: 3)
+        let weather = makeWeather(temp: 25, condition: "Partly Cloudy", windSpeed: 4, uvIndex: 3)
         let level = WeatherSafetyLevel.evaluate(weather: weather)
         #expect(level == .safe)
     }
@@ -135,19 +136,22 @@ struct WeatherSafetyLevelTests {
     }
     
     @Test func testCautionWeather_ColdTemp() {
-        let weather = makeWeather(temp: 3, condition: "Clear", windSpeed: 5, uvIndex: 2)
+        // 6°C está entre o limiar de atenção (8) e o de perigo (3) do frio.
+        let weather = makeWeather(temp: 6, condition: "Clear", windSpeed: 3, uvIndex: 2)
         let level = WeatherSafetyLevel.evaluate(weather: weather)
         #expect(level == .caution)
     }
-    
+
     @Test func testCautionWeather_HighUV() {
-        let weather = makeWeather(temp: 28, condition: "Clear", windSpeed: 5, uvIndex: 9)
+        // UV 7 está entre o limiar de atenção (6) e o de perigo (9).
+        let weather = makeWeather(temp: 28, condition: "Clear", windSpeed: 3, uvIndex: 7)
         let level = WeatherSafetyLevel.evaluate(weather: weather)
         #expect(level == .caution)
     }
-    
+
     @Test func testCautionWeather_StrongWind() {
-        let weather = makeWeather(temp: 22, condition: "Clear", windSpeed: 45, uvIndex: 4)
+        // 9 m/s (~32 km/h) está entre o limiar de atenção (8) e o de perigo (13).
+        let weather = makeWeather(temp: 22, condition: "Clear", windSpeed: 9, uvIndex: 4)
         let level = WeatherSafetyLevel.evaluate(weather: weather)
         #expect(level == .caution)
     }
@@ -447,48 +451,51 @@ struct AccessibilityDescriptionsTests {
 
 struct EdgeCaseTests {
     
-    @Test func testWeatherAtExactBoundary_35Degrees() {
-        // 35°C é o limite para caution (> 35)
-        let weatherAt35 = Weather(
-            city: "Teste", temperature: 35, feelsLike: 35, condition: "Clear",
-            description: "", humidity: 50, windSpeed: 10, cloudiness: 0,
-            sunrise: Date(), sunset: Date(), uvIndex: 5, visibility: 10000
+    // Limiares de calor do WeatherRiskAssessor (fonte única, delegada por
+    // WeatherSafetyLevel.evaluate): feelsLike >= 33 → atenção, >= 39 → perigo.
+    // Vento e UV calmos aqui de propósito, para isolar a variável testada (calor).
+
+    @Test func testWeatherAtExactBoundary_32Degrees() {
+        // Um grau abaixo do limiar de atenção (33) — ainda seguro.
+        let weatherAt32 = Weather(
+            city: "Teste", temperature: 32, feelsLike: 32, condition: "Clear",
+            description: "", humidity: 50, windSpeed: 3, cloudiness: 0,
+            sunrise: Date(), sunset: Date(), uvIndex: 2, visibility: 10000
         )
-        let level = WeatherSafetyLevel.evaluate(weather: weatherAt35)
-        // temp > 35 => caution, 35 is NOT > 35 so it should be safe
+        let level = WeatherSafetyLevel.evaluate(weather: weatherAt32)
         #expect(level == .safe)
     }
-    
-    @Test func testWeatherAtExactBoundary_36Degrees() {
-        let weatherAt36 = Weather(
-            city: "Teste", temperature: 36, feelsLike: 36, condition: "Clear",
-            description: "", humidity: 50, windSpeed: 10, cloudiness: 0,
-            sunrise: Date(), sunset: Date(), uvIndex: 5, visibility: 10000
+
+    @Test func testWeatherAtExactBoundary_33Degrees() {
+        // Exatamente no limiar de atenção (inclusivo: feelsLike >= 33).
+        let weatherAt33 = Weather(
+            city: "Teste", temperature: 33, feelsLike: 33, condition: "Clear",
+            description: "", humidity: 50, windSpeed: 3, cloudiness: 0,
+            sunrise: Date(), sunset: Date(), uvIndex: 2, visibility: 10000
         )
-        let level = WeatherSafetyLevel.evaluate(weather: weatherAt36)
+        let level = WeatherSafetyLevel.evaluate(weather: weatherAt33)
         #expect(level == .caution)
     }
-    
-    @Test func testWeatherAtExactBoundary_42Degrees() {
-        // 42°C é o limite para danger (> 42)
-        let weatherAt42 = Weather(
-            city: "Teste", temperature: 42, feelsLike: 42, condition: "Clear",
-            description: "", humidity: 50, windSpeed: 10, cloudiness: 0,
-            sunrise: Date(), sunset: Date(), uvIndex: 5, visibility: 10000
+
+    @Test func testWeatherAtExactBoundary_38Degrees() {
+        // Um grau abaixo do limiar de perigo (39) — ainda atenção, não perigo.
+        let weatherAt38 = Weather(
+            city: "Teste", temperature: 38, feelsLike: 38, condition: "Clear",
+            description: "", humidity: 50, windSpeed: 3, cloudiness: 0,
+            sunrise: Date(), sunset: Date(), uvIndex: 2, visibility: 10000
         )
-        let level = WeatherSafetyLevel.evaluate(weather: weatherAt42)
-        // temp > 42 => danger; 42 is NOT > 42
-        // But temp > 35 => caution; 42 > 35 IS true
+        let level = WeatherSafetyLevel.evaluate(weather: weatherAt38)
         #expect(level == .caution)
     }
-    
-    @Test func testWeatherAtExactBoundary_43Degrees() {
-        let weatherAt43 = Weather(
-            city: "Teste", temperature: 43, feelsLike: 43, condition: "Clear",
-            description: "", humidity: 50, windSpeed: 10, cloudiness: 0,
-            sunrise: Date(), sunset: Date(), uvIndex: 5, visibility: 10000
+
+    @Test func testWeatherAtExactBoundary_39Degrees() {
+        // Exatamente no limiar de perigo (inclusivo: feelsLike >= 39).
+        let weatherAt39 = Weather(
+            city: "Teste", temperature: 39, feelsLike: 39, condition: "Clear",
+            description: "", humidity: 50, windSpeed: 3, cloudiness: 0,
+            sunrise: Date(), sunset: Date(), uvIndex: 2, visibility: 10000
         )
-        let level = WeatherSafetyLevel.evaluate(weather: weatherAt43)
+        let level = WeatherSafetyLevel.evaluate(weather: weatherAt39)
         #expect(level == .danger)
     }
     
