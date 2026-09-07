@@ -79,4 +79,10 @@ struct HomeViewModelTests {
         sut.temperatureUnit = .kelvin
         #expect(sut.convertTemperature(0) == 273.15)
     }
+
+    @Test func temperatureUnitMapsFromPreference() {
+        #expect(TemperatureUnit(preference: "Celsius") == .celsius)
+        #expect(TemperatureUnit(preference: "Fahrenheit") == .fahrenheit)
+        #expect(TemperatureUnit(preference: "Kelvin") == .kelvin)
+    }
 }

@@ -99,6 +99,9 @@ final class HomeViewModel: ObservableObject {
     private var loadTask: Task<Void, Never>?
     private var aiSuggestionsTask: Task<Void, Never>?
     private var refreshActivityTask: Task<Void, Never>?
+    private var currentLoadToken: UUID?
+    private var currentActivityRefreshToken: UUID?
+    private var currentAISuggestionsToken: UUID?
 
     init(
         fetchWeatherUseCase: FetchWeatherUseCaseProtocol,
@@ -136,6 +139,8 @@ final class HomeViewModel: ObservableObject {
         loadTask?.cancel()
         aiSuggestionsTask?.cancel()
         refreshActivityTask?.cancel()
+        let token = UUID()
+        currentLoadToken = token
         cityName = city
         state = .loading
         officialAlerts = []   // limpa avisos da cidade anterior
@@ -149,11 +154,13 @@ final class HomeViewModel: ObservableObject {
             do {
                 let result = try await weatherTask
                 try Task.checkCancellation()
+                guard currentLoadToken == token else { return }
                 weather = result
                 isFavorite = manageFavoritesUseCase.isFavorite(city)
                 SearchHistoryManager.shared.addSearch(city)
                 forecast = (try? await forecastTask) ?? []
                 hourly   = (try? await hourlyTask) ?? []
+                guard !Task.isCancelled, currentLoadToken == token else { return }
                 // Qualidade do ar depende das coordenadas do clima recém-obtido.
                 if result.latitude != 0 || result.longitude != 0 {
                     airQuality = try? await fetchAirQualityUseCase.execute(
@@ -164,6 +171,7 @@ final class HomeViewModel: ObservableObject {
                         .init(latitude: result.latitude, longitude: result.longitude)
                     )) ?? []
                 }
+                guard !Task.isCancelled, currentLoadToken == token else { return }
                 state = .loaded
                 // Sinal de SUCESSO para o motor de adaptação (interação fluente
                 // reduz a carga cognitiva estimada).
@@ -198,10 +206,14 @@ final class HomeViewModel: ObservableObject {
     func refreshActivitySuggestion() {
         guard let weather else { return }
         refreshActivityTask?.cancel()
+        let token = UUID()
+        currentActivityRefreshToken = token
         isLoadingIA = true
         refreshActivityTask = Task { [weak self] in
             guard let self else { return }
-            activitySuggestion = await fetchAIUseCase.suggestActivity(weather: weather)
+            let suggestion = await fetchAIUseCase.suggestActivity(weather: weather)
+            guard !Task.isCancelled, currentActivityRefreshToken == token else { return }
+            activitySuggestion = suggestion
             isLoadingIA = false
         }
     }
@@ -223,16 +235,22 @@ final class HomeViewModel: ObservableObject {
 
     private func fetchAISuggestions(for weather: Weather) {
         aiSuggestionsTask?.cancel()
+        let token = UUID()
+        currentAISuggestionsToken = token
         isLoadingIA = true
         aiSuggestionsTask = Task { [weak self] in
             guard let self else { return }
             async let clothing = fetchAIUseCase.suggestClothing(weather: weather)
             async let activity = fetchAIUseCase.suggestActivity(weather: weather)
             async let advice   = fetchAIUseCase.generateSimplifiedAdvice(weather: weather)
-            clothingSuggestion = await clothing
-            activitySuggestion = await activity
+            let clothingResult = await clothing
+            let activityResult = await activity
+            let adviceResult = await advice
+            guard !Task.isCancelled, currentAISuggestionsToken == token else { return }
+            clothingSuggestion = clothingResult
+            activitySuggestion = activityResult
             // Conselho simples on-device; se indisponível, usa o fallback determinístico.
-            simplifiedAdvice = await advice ?? SimplifiedAdvice.fallback(for: weather)
+            simplifiedAdvice = adviceResult ?? SimplifiedAdvice.fallback(for: weather)
             isLoadingIA = false
         }
     }

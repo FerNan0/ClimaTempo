@@ -38,6 +38,8 @@ final class ActivityViewModel: ObservableObject {
     private let fetchAIUseCase: FetchAIRecommendationsUseCaseProtocol
     private var loadAllTask: Task<Void, Never>?
     private var refreshTask: Task<Void, Never>?
+    private var currentLoadToken: UUID?
+    private var currentRefreshToken: UUID?
 
     init(viewData: ActivityViewData, fetchAIUseCase: FetchAIRecommendationsUseCaseProtocol) {
         self.viewData = viewData
@@ -47,6 +49,8 @@ final class ActivityViewModel: ObservableObject {
     func loadAll() {
         loadAllTask?.cancel()
         refreshTask?.cancel()
+        let token = UUID()
+        currentLoadToken = token
         state = .loading
         let request = AIRecommendationRequest(
             city: city,
@@ -63,20 +67,27 @@ final class ActivityViewModel: ObservableObject {
             async let activity   = fetchAIUseCase.suggestActivity(weather: weather)
             async let alert      = fetchAIUseCase.getWeatherAlert(weather: weather)
 
-            guard !Task.isCancelled else { return }
-            iaResponse           = await rec
-            dynamicActivities    = await activities
-            structuredActivities = await structured
-            clothingSuggestion   = await clothing
-            activitySuggestion   = await activity
-            weatherAlert         = await alert
-            guard !Task.isCancelled else { return }
+            let recResult = await rec
+            let activitiesResult = await activities
+            let structuredResult = await structured
+            let clothingResult = await clothing
+            let activityResult = await activity
+            let alertResult = await alert
+            guard !Task.isCancelled, currentLoadToken == token else { return }
+            iaResponse           = recResult
+            dynamicActivities    = activitiesResult
+            structuredActivities = structuredResult
+            clothingSuggestion   = clothingResult
+            activitySuggestion   = activityResult
+            weatherAlert         = alertResult
             state = .loaded
         }
     }
 
     func refreshActivities() {
         refreshTask?.cancel()
+        let token = UUID()
+        currentRefreshToken = token
         let request = AIRecommendationRequest(
             city: city,
             weather: weather,
@@ -86,8 +97,11 @@ final class ActivityViewModel: ObservableObject {
             guard let self else { return }
             async let structured = fetchAIUseCase.generateStructuredActivities(request)
             async let text       = fetchAIUseCase.generateActivities(request)
-            structuredActivities = await structured
-            dynamicActivities    = await text
+            let structuredResult = await structured
+            let textResult = await text
+            guard !Task.isCancelled, currentRefreshToken == token else { return }
+            structuredActivities = structuredResult
+            dynamicActivities    = textResult
         }
     }
 
