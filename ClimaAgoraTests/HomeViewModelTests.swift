@@ -73,4 +73,10 @@ struct HomeViewModelTests {
         #expect(sut.isFavorite == true)
         #expect(favorites.isFavorite("Rio de Janeiro") == true)
     }
+
+    @Test func convertTemperature_kelvin() {
+        let sut = makeSUT()
+        sut.temperatureUnit = .kelvin
+        #expect(sut.convertTemperature(0) == 273.15)
+    }
 }

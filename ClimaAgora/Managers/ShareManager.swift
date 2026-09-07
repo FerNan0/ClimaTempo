@@ -18,7 +18,7 @@ class ShareManager {
         Condição: \(weather.description.capitalized)
         Sensação: \(Int(weather.feelsLike))°C
         Umidade: \(weather.humidity)%
-        Vento: \(String(format: "%.1f", weather.windSpeed)) km/h
+        Vento: \(String(format: "%.1f", weather.windKmh)) km/h
         Visibilidade: \(weather.visibility / 1000) km
         
         Baixe o ClimaAgora para previsões inteligentes!

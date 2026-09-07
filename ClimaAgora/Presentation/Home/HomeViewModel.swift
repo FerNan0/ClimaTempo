@@ -6,6 +6,15 @@ import SwiftUI
 enum TemperatureUnit: String {
     case celsius    = "°C"
     case fahrenheit = "°F"
+    case kelvin     = "K"
+
+    init(preference: String) {
+        switch preference.lowercased() {
+        case "fahrenheit": self = .fahrenheit
+        case "kelvin":     self = .kelvin
+        default:           self = .celsius
+        }
+    }
 }
 
 // MARK: - HomeViewModel
@@ -74,7 +83,9 @@ final class HomeViewModel: ObservableObject {
     }
 
     @Published var cityName = "São Paulo"
-    @Published var temperatureUnit: TemperatureUnit = .celsius
+    @Published var temperatureUnit: TemperatureUnit = .init(
+        preference: UserDefaults.standard.string(forKey: "temperatureUnit") ?? "Celsius"
+    )
 
     // MARK: - Dependências (interfaces injetadas pelo Router)
 
@@ -85,6 +96,9 @@ final class HomeViewModel: ObservableObject {
     private let fetchAIUseCase: FetchAIRecommendationsUseCaseProtocol
     private let manageFavoritesUseCase: ManageFavoritesUseCaseProtocol
     private let fetchOfficialAlertsUseCase: FetchOfficialAlertsUseCaseProtocol
+    private var loadTask: Task<Void, Never>?
+    private var aiSuggestionsTask: Task<Void, Never>?
+    private var refreshActivityTask: Task<Void, Never>?
 
     init(
         fetchWeatherUseCase: FetchWeatherUseCaseProtocol,
@@ -108,21 +122,33 @@ final class HomeViewModel: ObservableObject {
 
     /// Ponto de entrada (padrão do guia: `start`).
     func start() {
+        syncTemperatureUnitPreference()
         loadWeather(for: cityName)
     }
 
+    func syncTemperatureUnitPreference() {
+        temperatureUnit = .init(
+            preference: UserDefaults.standard.string(forKey: "temperatureUnit") ?? "Celsius"
+        )
+    }
+
     func loadWeather(for city: String) {
+        loadTask?.cancel()
+        aiSuggestionsTask?.cancel()
+        refreshActivityTask?.cancel()
         cityName = city
         state = .loading
         officialAlerts = []   // limpa avisos da cidade anterior
 
-        Task {
+        loadTask = Task { [weak self] in
+            guard let self else { return }
             async let weatherTask  = fetchWeatherUseCase.execute(.init(city: city))
             async let forecastTask = fetchForecastUseCase.execute(.init(city: city))
             async let hourlyTask   = fetchHourlyUseCase.execute(.init(city: city))
 
             do {
                 let result = try await weatherTask
+                try Task.checkCancellation()
                 weather = result
                 isFavorite = manageFavoritesUseCase.isFavorite(city)
                 SearchHistoryManager.shared.addSearch(city)
@@ -143,6 +169,8 @@ final class HomeViewModel: ObservableObject {
                 // reduz a carga cognitiva estimada).
                 AdaptiveEngine.shared.registerTaskCompleted(on: "Home")
                 fetchAISuggestions(for: result)
+            } catch is CancellationError {
+                return
             } catch {
                 // Loga o erro REAL no console (HTTP 401 = chave inválida, 404 = cidade, etc.)
                 print("❌ [HomeViewModel] Falha ao buscar clima para \(city): \(error)")
@@ -169,8 +197,10 @@ final class HomeViewModel: ObservableObject {
 
     func refreshActivitySuggestion() {
         guard let weather else { return }
+        refreshActivityTask?.cancel()
         isLoadingIA = true
-        Task {
+        refreshActivityTask = Task { [weak self] in
+            guard let self else { return }
             activitySuggestion = await fetchAIUseCase.suggestActivity(weather: weather)
             isLoadingIA = false
         }
@@ -182,6 +212,7 @@ final class HomeViewModel: ObservableObject {
         switch temperatureUnit {
         case .celsius:    return celsius
         case .fahrenheit: return (celsius * 9 / 5) + 32
+        case .kelvin:     return celsius + 273.15
         }
     }
 
@@ -191,8 +222,10 @@ final class HomeViewModel: ObservableObject {
     // MARK: - Privado
 
     private func fetchAISuggestions(for weather: Weather) {
+        aiSuggestionsTask?.cancel()
         isLoadingIA = true
-        Task {
+        aiSuggestionsTask = Task { [weak self] in
+            guard let self else { return }
             async let clothing = fetchAIUseCase.suggestClothing(weather: weather)
             async let activity = fetchAIUseCase.suggestActivity(weather: weather)
             async let advice   = fetchAIUseCase.generateSimplifiedAdvice(weather: weather)

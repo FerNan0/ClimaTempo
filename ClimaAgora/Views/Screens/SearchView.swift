@@ -38,6 +38,7 @@ struct SearchView: View {
             }
         }
         .onAppear { viewModel.onAppear() }
+        .onDisappear { viewModel.onDisappear() }
     }
 
     // MARK: - Barra de busca (campo + Cancelar)
@@ -46,12 +47,14 @@ struct SearchView: View {
         HStack(spacing: ClimaSpacing.sm + 2) {
             ClimaTextField("Buscar cidade", text: $searchText)
                 .onChange(of: searchText) { _, newValue in viewModel.search(newValue) }
+                .accessibilityIdentifier("search.city.field")
             Button("Cancelar") {
                 HapticManager.shared.trigger(.light)
                 dismiss()
             }
             .font(.system(size: 16, weight: .bold, design: .rounded))
             .foregroundStyle(ClimaColor.accent)
+            .accessibilityIdentifier("search.cancel.button")
         }
         .padding(.horizontal, ClimaSpacing.md)
         .padding(.top, ClimaSpacing.sm)

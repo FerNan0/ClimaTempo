@@ -167,6 +167,7 @@ final class IARepository: IARepositoryProtocol {
             )
             return response.choices.first?.message.content
         } catch {
+            print("⚠️ [IARepository] Falha no fallback OpenAI: \(error.localizedDescription)")
             return nil
         }
     }

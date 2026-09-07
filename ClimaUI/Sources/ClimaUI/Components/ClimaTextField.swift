@@ -26,6 +26,7 @@ public struct ClimaTextField: View {
                 .font(.system(size: 16, weight: .semibold, design: .rounded))
                 .foregroundStyle(ClimaColor.textPrimary)
                 .autocorrectionDisabled()
+                .accessibilityIdentifier("climaui.textfield.input")
 
             if !text.isEmpty {
                 Button {

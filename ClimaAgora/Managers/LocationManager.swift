@@ -2,6 +2,7 @@ import Foundation
 import CoreLocation
 import Combine
 
+@MainActor
 class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var location: CLLocationCoordinate2D?
     @Published var cityName: String = "São Paulo"
@@ -50,33 +51,28 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
-        
-        DispatchQueue.main.async {
-            self.location = location.coordinate
-            self.reverseGeocodeLocation(location)
-        }
-        
+
+        self.location = location.coordinate
+        self.reverseGeocodeLocation(location)
         manager.stopUpdatingLocation()
     }
     
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        DispatchQueue.main.async {
-            self.error = error.localizedDescription
-        }
+        self.error = error.localizedDescription
     }
     
     // MARK: - Reverse Geocoding
     private func reverseGeocodeLocation(_ location: CLLocation) {
         let geocoder = CLGeocoder()
-        geocoder.reverseGeocodeLocation(location) { placemarks, error in
+        geocoder.reverseGeocodeLocation(location) { [weak self] placemarks, error in
             if let error = error {
                 print("Erro de reverse geocoding: \(error.localizedDescription)")
                 return
             }
             
             if let placemark = placemarks?.first {
-                DispatchQueue.main.async {
-                    self.cityName = placemark.locality ?? placemark.administrativeArea ?? "São Paulo"
+                Task { @MainActor in
+                    self?.cityName = placemark.locality ?? placemark.administrativeArea ?? "São Paulo"
                 }
             }
         }

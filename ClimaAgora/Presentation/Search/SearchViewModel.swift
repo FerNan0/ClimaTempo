@@ -44,6 +44,9 @@ final class SearchViewModel: ObservableObject {
     private let fetchWeatherUseCase: FetchWeatherUseCaseProtocol
     private let manageFavoritesUseCase: ManageFavoritesUseCaseProtocol
     private let onCitySelected: (String) -> Void
+    private var favoritesTask: Task<Void, Never>?
+    private var searchTask: Task<Void, Never>?
+    private var currentSearchToken: UUID?
 
     init(
         searchUseCase: SearchCitiesUseCaseProtocol,
@@ -65,15 +68,23 @@ final class SearchViewModel: ObservableObject {
         loadFavorites()
     }
 
+    func onDisappear() {
+        favoritesTask?.cancel()
+        searchTask?.cancel()
+    }
+
     private func loadFavorites() {
+        favoritesTask?.cancel()
         let names = manageFavoritesUseCase.getAllFavorites()
         // Placeholder imediato (nome já aparece; a temperatura chega depois).
         favorites = names.map { FavoriteWeather(city: $0, temperature: nil, condition: nil) }
 
-        for name in names {
-            Task {
-                guard let weather = try? await fetchWeatherUseCase.execute(.init(city: name)) else { return }
-                guard let idx = favorites.firstIndex(where: { $0.city == name }) else { return }
+        favoritesTask = Task { [weak self] in
+            guard let self else { return }
+            for name in names {
+                guard !Task.isCancelled else { return }
+                guard let weather = try? await fetchWeatherUseCase.execute(.init(city: name)) else { continue }
+                guard let idx = favorites.firstIndex(where: { $0.city == name }) else { continue }
                 favorites[idx].temperature = Int(weather.temperature.rounded())
                 favorites[idx].condition = weather.condition
             }
@@ -86,13 +97,21 @@ final class SearchViewModel: ObservableObject {
         // Atalho de UX: nem dispara a Task com menos de 3 chars.
         // A regra "mínimo 3" mora no SearchCitiesUseCase (fonte da verdade).
         guard query.count >= 3 else {
+            currentSearchToken = nil
+            searchTask?.cancel()
             searchResults = []
             state = .idle
             return
         }
         state = .loading
-        Task {
-            searchResults = (try? await searchUseCase.execute(.init(query: query))) ?? []
+        let token = UUID()
+        currentSearchToken = token
+        searchTask?.cancel()
+        searchTask = Task { [weak self] in
+            guard let self else { return }
+            let result = (try? await searchUseCase.execute(.init(query: query))) ?? []
+            guard !Task.isCancelled, currentSearchToken == token else { return }
+            searchResults = result
             state = .loaded
         }
     }

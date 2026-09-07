@@ -31,9 +31,14 @@ struct ContentView: View {
         .sheet(isPresented: $cogSheetOpen) { CognitiveSheet() }
         .loadingOverlay(isLoading: viewModel.state == .loading, message: "Buscando clima...")
         .onAppear {
-            NotificationManager.shared.requestAuthorization()
             if locationManager.cityName != "São Paulo" { viewModel.cityName = locationManager.cityName }
+            viewModel.syncTemperatureUnitPreference()
             viewModel.start()
+        }
+        .onChange(of: locationManager.cityName) { _, newCity in
+            let city = newCity.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !city.isEmpty, city != viewModel.cityName else { return }
+            viewModel.loadWeather(for: city)
         }
     }
 
@@ -41,21 +46,27 @@ struct ContentView: View {
 
     private var header: some View {
         HStack(spacing: ClimaSpacing.sm + 2) {
-            pillButton("magnifyingglass") { viewModel.didTapSearch() }
+            pillButton("magnifyingglass", identifier: "home.search.button") { viewModel.didTapSearch() }
             CognitivePill(load: min(10, Int(engine.currentLoad.rounded()))) { cogSheetOpen = true }
             Spacer()
             pillButton(viewModel.isFavorite ? "heart.fill" : "heart",
-                       tint: viewModel.isFavorite ? ClimaColor.danger : nil) {
+                       tint: viewModel.isFavorite ? ClimaColor.danger : nil,
+                       identifier: "home.favorite.button") {
                 HapticManager.shared.trigger(.light)
                 viewModel.toggleFavorite()
             }
-            pillButton("gearshape") { viewModel.didTapSettings() }
+            pillButton("gearshape", identifier: "home.settings.button") { viewModel.didTapSettings() }
         }
         .padding(.horizontal, ClimaSpacing.md)
         .padding(.top, ClimaSpacing.sm)
     }
 
-    private func pillButton(_ icon: String, tint: Color? = nil, action: @escaping () -> Void) -> some View {
+    private func pillButton(
+        _ icon: String,
+        tint: Color? = nil,
+        identifier: String? = nil,
+        action: @escaping () -> Void
+    ) -> some View {
         Button(action: action) {
             Image(systemName: icon)
                 .font(.system(size: 18, weight: .medium))
@@ -64,6 +75,7 @@ struct ContentView: View {
                 .background(Circle().fill(.ultraThinMaterial))
                 .overlay(Circle().stroke(ClimaColor.glassBorder, lineWidth: 1))
         }
+        .accessibilityIdentifier(identifier ?? "")
     }
 
     // MARK: - Conteúdo por estado
@@ -246,6 +258,7 @@ struct ContentView: View {
             HapticManager.shared.trigger(.medium)
             viewModel.didTapShare()
         }
+        .accessibilityIdentifier("home.share.button")
     }
 
     // MARK: - Sem conexão

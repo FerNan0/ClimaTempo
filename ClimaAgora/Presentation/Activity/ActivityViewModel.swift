@@ -36,6 +36,8 @@ final class ActivityViewModel: ObservableObject {
     var weather: Weather { viewData.weather }
 
     private let fetchAIUseCase: FetchAIRecommendationsUseCaseProtocol
+    private var loadAllTask: Task<Void, Never>?
+    private var refreshTask: Task<Void, Never>?
 
     init(viewData: ActivityViewData, fetchAIUseCase: FetchAIRecommendationsUseCaseProtocol) {
         self.viewData = viewData
@@ -43,6 +45,8 @@ final class ActivityViewModel: ObservableObject {
     }
 
     func loadAll() {
+        loadAllTask?.cancel()
+        refreshTask?.cancel()
         state = .loading
         let request = AIRecommendationRequest(
             city: city,
@@ -50,7 +54,8 @@ final class ActivityViewModel: ObservableObject {
             simplified: CognitiveAccessibilityManager.shared.isSimplifiedMode
         )
 
-        Task {
+        loadAllTask = Task { [weak self] in
+            guard let self else { return }
             async let rec        = fetchAIUseCase.generateRecommendation(request)
             async let activities = fetchAIUseCase.generateActivities(request)
             async let structured = fetchAIUseCase.generateStructuredActivities(request)
@@ -58,27 +63,36 @@ final class ActivityViewModel: ObservableObject {
             async let activity   = fetchAIUseCase.suggestActivity(weather: weather)
             async let alert      = fetchAIUseCase.getWeatherAlert(weather: weather)
 
+            guard !Task.isCancelled else { return }
             iaResponse           = await rec
             dynamicActivities    = await activities
             structuredActivities = await structured
             clothingSuggestion   = await clothing
             activitySuggestion   = await activity
             weatherAlert         = await alert
+            guard !Task.isCancelled else { return }
             state = .loaded
         }
     }
 
     func refreshActivities() {
+        refreshTask?.cancel()
         let request = AIRecommendationRequest(
             city: city,
             weather: weather,
             simplified: CognitiveAccessibilityManager.shared.isSimplifiedMode
         )
-        Task {
+        refreshTask = Task { [weak self] in
+            guard let self else { return }
             async let structured = fetchAIUseCase.generateStructuredActivities(request)
             async let text       = fetchAIUseCase.generateActivities(request)
             structuredActivities = await structured
             dynamicActivities    = await text
         }
+    }
+
+    func onDisappear() {
+        loadAllTask?.cancel()
+        refreshTask?.cancel()
     }
 }

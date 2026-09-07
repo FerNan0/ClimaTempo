@@ -23,19 +23,28 @@ final class ClimaAgoraUITests: XCTestCase {
     }
 
     @MainActor
-    func testExample() throws {
-        // UI tests must launch the application that they test.
+    func testOpenSearchAndClose() throws {
         let app = XCUIApplication()
         app.launch()
+        let searchButton = app.buttons["home.search.button"]
+        XCTAssertTrue(searchButton.waitForExistence(timeout: 5))
+        searchButton.tap()
 
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
+        let searchField = app.textFields["climaui.textfield.input"]
+        XCTAssertTrue(searchField.waitForExistence(timeout: 5))
+
+        let cancelButton = app.buttons["search.cancel.button"]
+        XCTAssertTrue(cancelButton.exists)
+        cancelButton.tap()
     }
 
     @MainActor
-    func testLaunchPerformance() throws {
-        // This measures how long it takes to launch your application.
-        measure(metrics: [XCTApplicationLaunchMetric()]) {
-            XCUIApplication().launch()
-        }
+    func testOpenSettings() throws {
+        let app = XCUIApplication()
+        app.launch()
+        let settingsButton = app.buttons["home.settings.button"]
+        XCTAssertTrue(settingsButton.waitForExistence(timeout: 5))
+        settingsButton.tap()
+        XCTAssertTrue(app.staticTexts["Configurações"].waitForExistence(timeout: 5))
     }
 }

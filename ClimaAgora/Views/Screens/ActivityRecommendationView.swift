@@ -30,6 +30,7 @@ struct ActivityRecommendationView: View {
                             .foregroundColor(.white.opacity(0.7))
                     }
                     .accessibleButton(label: AccessibilityDescriptions.closeButton, hint: "Fecha a tela de atividades")
+                    .accessibilityIdentifier("activity.close.button")
                 }
                 .padding()
                 .background(ClimaGradient.brand)
@@ -59,6 +60,7 @@ struct ActivityRecommendationView: View {
         .onAppear {
             viewModel.loadAll()
         }
+        .onDisappear { viewModel.onDisappear() }
     }
 }
 
@@ -213,7 +215,7 @@ struct WeatherInfoCard: View {
                 .font(.footnote).foregroundColor(ClimaColor.textSecondary)
             }
         }
-        .accessibleGroup(label: AccessibilityHelper.createStatusDescription(city: weather.city, condition: weather.condition, temperature: Int(weather.temperature)) + ". " + AccessibilityDescriptions.humidity(weather.humidity) + ". " + AccessibilityDescriptions.wind(weather.windSpeed))
+        .accessibleGroup(label: AccessibilityHelper.createStatusDescription(city: weather.city, condition: weather.condition, temperature: Int(weather.temperature)) + ". " + AccessibilityDescriptions.humidity(weather.humidity) + ". " + AccessibilityDescriptions.wind(weather.windKmh))
     }
 }
 
